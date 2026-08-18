@@ -1,0 +1,41 @@
+import Setting from '../models/Setting.js';
+
+export const getSettings = async (req, res) => {
+  const mandalId = req.mandalId;
+
+  try {
+    let settings = await Setting.findOne({ mandalId });
+    if (!settings) {
+      settings = await Setting.create({ mandalId });
+    }
+    res.json(settings);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error retrieving settings' });
+  }
+};
+
+export const updateSettings = async (req, res) => {
+  const mandalId = req.mandalId;
+  const { receiptPrefix, receiptStartNumber, expensePrefix, expenseStartNumber, paymentModes, donationCategories, expenseCategories } = req.body;
+
+  try {
+    let settings = await Setting.findOne({ mandalId });
+    if (!settings) {
+      settings = new Setting({ mandalId });
+    }
+
+    if (receiptPrefix !== undefined) settings.receiptPrefix = receiptPrefix;
+    if (receiptStartNumber !== undefined) settings.receiptStartNumber = receiptStartNumber;
+    if (expensePrefix !== undefined) settings.expensePrefix = expensePrefix;
+    if (expenseStartNumber !== undefined) settings.expenseStartNumber = expenseStartNumber;
+    if (paymentModes !== undefined) settings.paymentModes = paymentModes;
+    if (donationCategories !== undefined) settings.donationCategories = donationCategories;
+    if (expenseCategories !== undefined) settings.expenseCategories = expenseCategories;
+
+    await settings.save();
+    res.json(settings);
+  } catch (error) {
+    console.error('Update settings error:', error);
+    res.status(500).json({ message: 'Server error updating settings' });
+  }
+};

@@ -1,0 +1,99 @@
+import PDFDocument from 'pdfkit';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { numberToWords } from '../utils/numberToWords.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+export const generateReceiptPDF = (receipt, donation, donor, mandal, collectorName) => {
+  return new Promise((resolve, reject) => {
+    try {
+      // Create uploads directory if not exists
+      const uploadsDir = path.join(__dirname, '..', '..', 'uploads', 'receipts');
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+
+      const fileName = `receipt_${receipt.receiptNo.replace(/\//g, '_')}.pdf`;
+      const filePath = path.join(uploadsDir, fileName);
+
+      const doc = new PDFDocument({
+        size: 'A5',
+        layout: 'landscape',
+        margin: 30,
+      });
+
+      const writeStream = fs.createWriteStream(filePath);
+      doc.pipe(writeStream);
+
+      // Draw border
+      doc.rect(15, 15, doc.page.width - 30, doc.page.height - 30).stroke('#6366f1');
+      doc.rect(18, 18, doc.page.width - 36, doc.page.height - 36).stroke('#ea580c');
+
+      // Title & Header
+      doc.fillColor('#ea580c').fontSize(16).text(mandal.name, { align: 'center' });
+      if (mandal.registrationDetails) {
+        doc.fillColor('#4b5563').fontSize(8).text(`Reg. No: ${mandal.registrationDetails}`, { align: 'center' });
+      }
+      doc.fontSize(8).text(mandal.address || '', { align: 'center' });
+      doc.moveDown(0.5);
+
+      // Horizontal Line
+      doc.moveTo(25, 80).lineTo(doc.page.width - 25, 80).stroke('#e5e7eb');
+
+      // Receipt Title Block
+      doc.fillColor('#6366f1').fontSize(12).text('DONATION RECEIPT (देणगी पावती)', 30, 90, { align: 'center' });
+
+      // Receipt Metadata
+      doc.fillColor('#1f2937').fontSize(10);
+      doc.text(`Receipt No: ${receipt.receiptNo}`, 30, 115);
+      doc.text(`Date: ${new Date(donation.createdAt).toLocaleDateString()}`, doc.page.width - 150, 115);
+
+      // Donor details
+      doc.text(`Received with thanks from:`, 30, 140);
+      doc.fillColor('#ea580c').fontSize(11).text(donor.name, 180, 140);
+      
+      doc.fillColor('#1f2937').fontSize(10);
+      doc.text(`Mobile: ${donor.mobile}`, 30, 160);
+      if (donor.email) {
+        doc.text(`Email: ${donor.email}`, doc.page.width - 220, 160);
+      }
+
+      doc.text(`The sum of Rupees:`, 30, 180);
+      doc.fillColor('#1f2937').fontSize(10).text(numberToWords(donation.amount), 180, 180);
+
+      doc.fillColor('#1f2937').fontSize(10);
+      doc.text(`Purpose / वर्गणी:`, 30, 200);
+      doc.fillColor('#ea580c').text(donation.purpose, 180, 200);
+
+      doc.fillColor('#1f2937');
+      doc.text(`Payment Mode: ${donation.paymentMode}`, 30, 220);
+
+      // Amount Box
+      doc.rect(30, 240, 150, 30).fill('#6366f1').stroke();
+      doc.fillColor('#ffffff').fontSize(12).text(`Rs. ${donation.amount}/-`, 40, 248, { width: 130, align: 'center' });
+
+      // Signatures
+      doc.fillColor('#4b5563').fontSize(9);
+      doc.text(`Collector: ${collectorName}`, 30, 280);
+
+      doc.text('Authorized Signature', doc.page.width - 150, 260);
+      doc.moveTo(doc.page.width - 160, 255).lineTo(doc.page.width - 30, 255).stroke('#4b5563');
+      doc.fontSize(8).text('Thank you for your generous contribution!', doc.page.width - 210, 280, { align: 'right' });
+
+      doc.end();
+
+      writeStream.on('finish', () => {
+        resolve(filePath);
+      });
+
+      writeStream.on('error', (err) => {
+        reject(err);
+      });
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
