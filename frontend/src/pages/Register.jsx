@@ -59,7 +59,7 @@ const Register = () => {
         state,
       });
       loginUser(res.data);
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'नोंदणी अयशस्वी. कृपया पुन्हा प्रयत्न करा / Registration Failed');
     } finally {

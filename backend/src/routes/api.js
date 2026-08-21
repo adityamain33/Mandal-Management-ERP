@@ -2,7 +2,7 @@ import express from 'express';
 import { protect, authorize } from '../middleware/auth.js';
 
 // Import controllers
-import { register, login, forgotPassword, resetPassword, getProfile } from '../controllers/authController.js';
+import { register, login, forgotPassword, resetPassword, getProfile, updateMandal } from '../controllers/authController.js';
 import { getDashboardStats } from '../controllers/dashboardController.js';
 import { getReceipts, createReceipt, downloadReceiptPDF, cancelReceipt } from '../controllers/receiptController.js';
 import { getDonors, createDonor, getDonorProfile, updateDonor } from '../controllers/donorController.js';
@@ -28,6 +28,7 @@ router.post('/auth/login', login);
 router.post('/auth/forgot-password', forgotPassword);
 router.post('/auth/reset-password', resetPassword);
 router.get('/auth/profile', protect, getProfile);
+router.put('/auth/mandal', protect, authorize('MANDAL_ADMIN'), updateMandal);
 
 // --- Dashboard Routes ---
 router.get('/dashboard', protect, getDashboardStats);

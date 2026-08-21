@@ -9,6 +9,7 @@ import DashboardLayout from './layouts/DashboardLayout.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
+import Landing from './pages/Landing.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Receipts from './pages/Receipts.jsx';
 import Donors from './pages/Donors.jsx';
@@ -45,6 +46,9 @@ function App() {
   return (
     <Router>
       <Routes>
+        {/* Public Landing Page */}
+        <Route path="/" element={<Landing />} />
+
         {/* Auth Public Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -57,7 +61,7 @@ function App() {
             <PrivateRoute>
               <DashboardLayout>
                 <Routes>
-                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/receipts" element={<Receipts />} />
                   <Route path="/donors" element={<Donors />} />
                   <Route path="/donations" element={<Donations />} />
@@ -70,7 +74,7 @@ function App() {
                   <Route path="/reports" element={<Reports />} />
                   <Route path="/audit-logs" element={<AuditLogs />} />
                   <Route path="/settings" element={<Settings />} />
-                  <Route path="*" element={<Navigate to="/" replace />} />
+                  <Route path="*" element={<Navigate to="/dashboard" replace />} />
                 </Routes>
               </DashboardLayout>
             </PrivateRoute>

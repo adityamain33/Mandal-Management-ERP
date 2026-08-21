@@ -16,7 +16,7 @@ export const getSettings = async (req, res) => {
 
 export const updateSettings = async (req, res) => {
   const mandalId = req.mandalId;
-  const { receiptPrefix, receiptStartNumber, expensePrefix, expenseStartNumber, paymentModes, donationCategories, expenseCategories } = req.body;
+  const { receiptPrefix, receiptStartNumber, expensePrefix, expenseStartNumber, paymentModes, donationCategories, expenseCategories, mandalLogo, authorizedSignature } = req.body;
 
   try {
     let settings = await Setting.findOne({ mandalId });
@@ -31,6 +31,8 @@ export const updateSettings = async (req, res) => {
     if (paymentModes !== undefined) settings.paymentModes = paymentModes;
     if (donationCategories !== undefined) settings.donationCategories = donationCategories;
     if (expenseCategories !== undefined) settings.expenseCategories = expenseCategories;
+    if (mandalLogo !== undefined) settings.mandalLogo = mandalLogo;
+    if (authorizedSignature !== undefined) settings.authorizedSignature = authorizedSignature;
 
     await settings.save();
     res.json(settings);

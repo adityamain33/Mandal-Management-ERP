@@ -194,3 +194,29 @@ export const getProfile = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+export const updateMandal = async (req, res) => {
+  const mandalId = req.mandalId;
+  const { name, registrationDetails, address } = req.body;
+
+  if (!mandalId) {
+    return res.status(400).json({ message: 'Active Mandal ID is required' });
+  }
+
+  try {
+    const mandal = await Mandal.findById(mandalId);
+    if (!mandal) {
+      return res.status(404).json({ message: 'Mandal not found' });
+    }
+
+    if (name !== undefined) mandal.name = name;
+    if (registrationDetails !== undefined) mandal.registrationDetails = registrationDetails;
+    if (address !== undefined) mandal.address = address;
+
+    await mandal.save();
+    res.json(mandal);
+  } catch (error) {
+    console.error('Update Mandal error:', error);
+    res.status(500).json({ message: 'Server error updating Mandal profile' });
+  }
+};

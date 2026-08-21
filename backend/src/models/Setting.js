@@ -7,6 +7,14 @@ const settingSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
+  mandalLogo: {
+    type: String,
+    default: '',
+  },
+  authorizedSignature: {
+    type: String,
+    default: '',
+  },
   receiptPrefix: {
     type: String,
     default: 'GM/26',

@@ -3,13 +3,36 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { numberToWords } from '../utils/numberToWords.js';
+import Setting from '../models/Setting.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Helper to convert base64 image data URL to a Buffer
+const getBufferFromBase64 = (base64String) => {
+  if (!base64String) return null;
+  const matches = base64String.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+  if (matches && matches.length === 3) {
+    return Buffer.from(matches[2], 'base64');
+  }
+  try {
+    return Buffer.from(base64String, 'base64');
+  } catch (e) {
+    return null;
+  }
+};
+
 export const generateReceiptPDF = (receipt, donation, donor, mandal, collectorName) => {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     try {
+      // Fetch settings for logos/signatures
+      let settings = null;
+      try {
+        settings = await Setting.findOne({ mandalId: mandal._id || receipt.mandalId });
+      } catch (err) {
+        console.error('Error fetching settings for receipt PDF:', err);
+      }
+
       // Create uploads directory if not exists
       const uploadsDir = path.join(__dirname, '..', '..', 'uploads', 'receipts');
       if (!fs.existsSync(uploadsDir)) {
@@ -28,9 +51,26 @@ export const generateReceiptPDF = (receipt, donation, donor, mandal, collectorNa
       const writeStream = fs.createWriteStream(filePath);
       doc.pipe(writeStream);
 
+      // Register and set Mukta font if available (supports both Latin and Devanagari)
+      const fontPath = path.join(__dirname, '..', 'assets', 'fonts', 'Mukta-Regular.ttf');
+      if (fs.existsSync(fontPath)) {
+        doc.registerFont('Bilingual', fontPath);
+        doc.font('Bilingual');
+      }
+
       // Draw border
       doc.rect(15, 15, doc.page.width - 30, doc.page.height - 30).stroke('#6366f1');
       doc.rect(18, 18, doc.page.width - 36, doc.page.height - 36).stroke('#ea580c');
+
+      // Draw Mandal Logo if configured
+      const logoBuffer = getBufferFromBase64(settings?.mandalLogo);
+      if (logoBuffer) {
+        try {
+          doc.image(logoBuffer, 35, 25, { fit: [45, 45] });
+        } catch (err) {
+          console.error("PDF logo drawing failed:", err);
+        }
+      }
 
       // Title & Header
       doc.fillColor('#ea580c').fontSize(16).text(mandal.name, { align: 'center' });
@@ -74,6 +114,16 @@ export const generateReceiptPDF = (receipt, donation, donor, mandal, collectorNa
       // Amount Box
       doc.rect(30, 240, 150, 30).fill('#6366f1').stroke();
       doc.fillColor('#ffffff').fontSize(12).text(`Rs. ${donation.amount}/-`, 40, 248, { width: 130, align: 'center' });
+
+      // Draw Signature if configured
+      const sigBuffer = getBufferFromBase64(settings?.authorizedSignature);
+      if (sigBuffer) {
+        try {
+          doc.image(sigBuffer, doc.page.width - 145, 212, { fit: [100, 40] });
+        } catch (err) {
+          console.error("PDF signature drawing failed:", err);
+        }
+      }
 
       // Signatures
       doc.fillColor('#4b5563').fontSize(9);

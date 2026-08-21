@@ -116,7 +116,14 @@ const Receipts = () => {
           handleDownloadPDF(res.data.receipt._id, res.data.receipt.receiptNo);
         }
         if (actionType === 'whatsapp') {
-          const text = `नमस्कार! श्री गणेश मित्र मंडळातर्फे आपल्या ₹${amount} वर्गणीची पावती यशस्वीरीत्या जमा झाली आहे. पावती क्रमांक: ${res.data.receipt.receiptNo}`;
+          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+          const serverRoot = apiUrl.endsWith('/api') ? apiUrl.slice(0, -4) : apiUrl;
+          const receiptUrl = `${serverRoot}/uploads/receipts/receipt_${res.data.receipt.receiptNo.replace(/\//g, '_')}.pdf`;
+          
+          const text = `नमस्कार! श्री गणेश मित्र मंडळातर्फे आपल्या ₹${amount} वर्गणीची पावती यशस्वीरीत्या जमा झाली आहे.
+पावती क्रमांक: ${res.data.receipt.receiptNo}
+पावती डाउनलोड करण्यासाठी खालील लिंकवर क्लिक करा:
+${receiptUrl}`;
           window.open(`https://api.whatsapp.com/send?phone=91${mobile}&text=${encodeURIComponent(text)}`, '_blank');
         }
       }, 1500);
@@ -373,7 +380,14 @@ const Receipts = () => {
                             <>
                               <button
                                 onClick={() => {
-                                  const text = `नमस्कार! श्री गणेश मित्र मंडळातर्फे आपल्या ₹${r.amount} वर्गणीची पावती यशस्वीरीत्या जमा झाली आहे. पावती क्रमांक: ${r.receiptNo}`;
+                                  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+                                  const serverRoot = apiUrl.endsWith('/api') ? apiUrl.slice(0, -4) : apiUrl;
+                                  const receiptUrl = `${serverRoot}/uploads/receipts/receipt_${r.receiptNo.replace(/\//g, '_')}.pdf`;
+
+                                  const text = `नमस्कार! श्री गणेश मित्र मंडळातर्फे आपल्या ₹${r.amount} वर्गणीची पावती यशस्वीरीत्या जमा झाली आहे.
+पावती क्रमांक: ${r.receiptNo}
+पावती डाउनलोड करण्यासाठी खालील लिंकवर क्लिक करा:
+${receiptUrl}`;
                                   window.open(`https://api.whatsapp.com/send?phone=91${donor?.mobile}&text=${encodeURIComponent(text)}`, '_blank');
                                 }}
                                 className="p-1 rounded bg-green-50 border border-green-200 text-green-700 hover:bg-green-100"

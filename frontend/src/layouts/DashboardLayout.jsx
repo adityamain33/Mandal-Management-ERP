@@ -55,7 +55,7 @@ const DashboardLayout = ({ children }) => {
   const [aiLoading, setAiLoading] = useState(false);
 
   const navigationItems = [
-    { name: t('sidebar.dashboard'), path: '/', icon: LayoutDashboard },
+    { name: t('sidebar.dashboard'), path: '/dashboard', icon: LayoutDashboard },
     { name: t('sidebar.receipts'), path: '/receipts', icon: Receipt },
     { name: t('sidebar.donations'), path: '/donations', icon: IndianRupee },
     { name: t('sidebar.expenses'), path: '/expenses', icon: Coins },
@@ -133,7 +133,7 @@ const DashboardLayout = ({ children }) => {
       >
         {/* Sidebar Header */}
         <div className="flex h-16 items-center justify-between px-6 border-b border-slate-50">
-          <Link to="/" className="flex items-center gap-2" onClick={() => setSidebarOpen(false)}>
+          <Link to="/dashboard" className="flex items-center gap-2" onClick={() => setSidebarOpen(false)}>
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-600 shadow-md text-white font-bold text-lg">
               म
             </div>
@@ -213,7 +213,7 @@ const DashboardLayout = ({ children }) => {
       <div className="flex flex-1 flex-col overflow-hidden">
         
         {/* --- HEADER --- */}
-        <header className="flex h-16 items-center justify-between px-6 border-b border-slate-100 bg-white shadow-sm">
+        <header className="flex h-16 items-center justify-between px-4 sm:px-6 border-b border-slate-100 bg-white shadow-sm">
           {/* Left Part */}
           <div className="flex items-center gap-4">
             <button
@@ -243,15 +243,16 @@ const DashboardLayout = ({ children }) => {
             <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-1 text-xs">
               <button
                 onClick={() => changeLanguage('mr')}
-                className={`px-2 py-1 rounded-md font-semibold ${
+                className={`px-2 py-1 rounded-md font-semibold transition-all duration-150 ${
                   lang === 'mr' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
-                मराठी
+                <span className="hidden sm:inline">मराठी</span>
+                <span className="sm:hidden">म</span>
               </button>
               <button
                 onClick={() => changeLanguage('en')}
-                className={`px-2 py-1 rounded-md font-semibold ${
+                className={`px-2 py-1 rounded-md font-semibold transition-all duration-150 ${
                   lang === 'en' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
@@ -259,11 +260,12 @@ const DashboardLayout = ({ children }) => {
               </button>
               <button
                 onClick={() => changeLanguage('hi')}
-                className={`px-2 py-1 rounded-md font-semibold ${
+                className={`px-2 py-1 rounded-md font-semibold transition-all duration-150 ${
                   lang === 'hi' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
-                हिंदी
+                <span className="hidden sm:inline">हिंदी</span>
+                <span className="sm:hidden font-medium">हि</span>
               </button>
             </div>
 
@@ -271,10 +273,10 @@ const DashboardLayout = ({ children }) => {
             <div className="relative">
               <button
                 onClick={() => setQuickAddOpen(!quickAddOpen)}
-                className="flex items-center gap-1 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-sm active:scale-95 duration-150 cursor-pointer"
+                className="flex items-center justify-center gap-1 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold p-2 sm:px-3 sm:py-2 rounded-lg shadow-sm active:scale-95 duration-150 cursor-pointer"
               >
                 <Plus size={14} />
-                <span>{t('header.quickAdd')}</span>
+                <span className="hidden sm:inline">{t('header.quickAdd')}</span>
               </button>
 
               {quickAddOpen && (
@@ -384,7 +386,7 @@ const DashboardLayout = ({ children }) => {
             {/* AI Toggle Button */}
             <button
               onClick={() => setAiOpen(!aiOpen)}
-              className="flex items-center gap-1.5 border border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3 py-2 rounded-lg text-xs font-semibold shadow-sm active:scale-95 duration-150 cursor-pointer"
+              className="flex items-center justify-center gap-1 border border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 p-2 sm:px-3 sm:py-2 rounded-lg text-xs font-semibold shadow-sm active:scale-95 duration-150 cursor-pointer"
             >
               <Sparkles size={14} className="text-indigo-600 animate-pulse" />
               <span className="hidden sm:inline">{t('header.askAi')}</span>

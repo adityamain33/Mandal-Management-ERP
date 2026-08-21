@@ -26,7 +26,7 @@ const Login = () => {
     try {
       const res = await axios.post('/auth/login', { emailOrMobile, password });
       loginUser(res.data);
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'लॉगिन अयशस्वी. कृपया तपशील तपासा / Login Failed');
     } finally {
