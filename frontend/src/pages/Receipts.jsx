@@ -113,7 +113,7 @@ const Receipts = () => {
 
         // Handle auto actions
         if (actionType === 'print' || actionType === 'whatsapp') {
-          handleDownloadPDF(res.data.receipt._id);
+          handleDownloadPDF(res.data.receipt._id, res.data.receipt.receiptNo);
         }
         if (actionType === 'whatsapp') {
           const text = `नमस्कार! श्री गणेश मित्र मंडळातर्फे आपल्या ₹${amount} वर्गणीची पावती यशस्वीरीत्या जमा झाली आहे. पावती क्रमांक: ${res.data.receipt.receiptNo}`;
@@ -137,8 +137,25 @@ const Receipts = () => {
     setNotes('');
   };
 
-  const handleDownloadPDF = (id) => {
-    window.open(`${axios.defaults.baseURL}/receipts/${id}/pdf`, '_blank');
+  const handleDownloadPDF = async (id, receiptNo) => {
+    try {
+      const res = await axios.get(`/receipts/${id}/pdf`, {
+        responseType: 'blob',
+      });
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const formattedNo = receiptNo ? receiptNo.replace(/\//g, '_') : id;
+      link.setAttribute('download', `receipt_${formattedNo}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Error downloading PDF:', err);
+      alert('पावती डाउनलोड करताना त्रुटी आली. (Error downloading PDF)');
+    }
   };
 
   const handleCancelReceipt = async (id) => {
@@ -151,8 +168,28 @@ const Receipts = () => {
     }
   };
 
-  const handleExport = (format) => {
-    window.open(`${axios.defaults.baseURL}/reports/receipts/export?format=${format}`, '_blank');
+  const handleExport = async (format) => {
+    try {
+      const res = await axios.get(`/reports/receipts/export?format=${format}`, {
+        responseType: 'blob',
+      });
+      const blob = new Blob([res.data], {
+        type: format === 'xlsx'
+          ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          : 'text/csv',
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `receipts_report.${format}`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Error exporting receipts report:', err);
+      alert('अहवाल डाउनलोड करताना त्रुटी आली. (Error exporting report)');
+    }
   };
 
   return (
@@ -326,7 +363,7 @@ const Receipts = () => {
                       <td className="px-6 py-3.5">
                         <div className="flex items-center justify-center gap-1.5">
                           <button
-                            onClick={() => handleDownloadPDF(r._id)}
+                            onClick={() => handleDownloadPDF(r._id, r.receiptNo)}
                             className="p-1 rounded bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-800"
                             title="Print / View"
                           >

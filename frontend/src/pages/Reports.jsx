@@ -22,8 +22,28 @@ const Reports = () => {
     fetchProfitLoss();
   }, []);
 
-  const handleExport = (reportType, format) => {
-    window.open(`${axios.defaults.baseURL}/reports/${reportType}/export?format=${format}`, '_blank');
+  const handleExport = async (reportType, format) => {
+    try {
+      const res = await axios.get(`/reports/${reportType}/export?format=${format}`, {
+        responseType: 'blob',
+      });
+      const blob = new Blob([res.data], {
+        type: format === 'xlsx'
+          ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          : 'text/csv',
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${reportType}_report.${format}`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Error exporting report:', err);
+      alert('अहवाल डाउनलोड करताना त्रुटी आली. (Error exporting report)');
+    }
   };
 
   return (

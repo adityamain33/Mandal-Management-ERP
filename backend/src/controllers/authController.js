@@ -16,6 +16,23 @@ export const register = async (req, res) => {
     return res.status(400).json({ message: 'All fields are required' });
   }
 
+  // Email format validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ message: 'कृपया वैध ईमेल आयडी टाका / Please enter a valid email address' });
+  }
+
+  // Mobile number validation (10 digits starting with 6-9)
+  const mobileRegex = /^[6-9]\d{9}$/;
+  if (!mobileRegex.test(mobile)) {
+    return res.status(400).json({ message: 'कृपया वैध १०-अंकी मोबाईल क्रमांक टाका / Please enter a valid 10-digit mobile number' });
+  }
+
+  // Password length validation
+  if (password.length < 6) {
+    return res.status(400).json({ message: 'पासवर्ड किमान ६ अक्षरांचा असावा / Password must be at least 6 characters' });
+  }
+
   try {
     const userExists = await User.findOne({ email });
     if (userExists) {

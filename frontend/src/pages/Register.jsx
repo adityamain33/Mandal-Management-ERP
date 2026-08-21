@@ -25,6 +25,26 @@ const Register = () => {
       return;
     }
 
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('कृपया वैध ईमेल आयडी टाका / Please enter a valid email address');
+      return;
+    }
+
+    // Mobile number validation (10 digits starting with 6-9)
+    const mobileRegex = /^[6-9]\d{9}$/;
+    if (!mobileRegex.test(mobile)) {
+      setError('कृपया वैध १०-अंकी मोबाईल क्रमांक टाका / Please enter a valid 10-digit mobile number');
+      return;
+    }
+
+    // Password length validation (at least 6 characters)
+    if (password.length < 6) {
+      setError('पासवर्ड किमान ६ अक्षरांचा असावा / Password must be at least 6 characters');
+      return;
+    }
+
     setLoading(true);
     setError('');
 

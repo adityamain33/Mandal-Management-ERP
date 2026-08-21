@@ -102,8 +102,28 @@ const Donations = () => {
     setNotes('');
   };
 
-  const handleExport = (format) => {
-    window.open(`${axios.defaults.baseURL}/reports/donations/export?format=${format}`, '_blank');
+  const handleExport = async (format) => {
+    try {
+      const res = await axios.get(`/reports/donations/export?format=${format}`, {
+        responseType: 'blob',
+      });
+      const blob = new Blob([res.data], {
+        type: format === 'xlsx'
+          ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          : 'text/csv',
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `donations_report.${format}`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Error exporting donations report:', err);
+      alert('अहवाल डाउनलोड करताना त्रुटी आली. (Error exporting report)');
+    }
   };
 
   return (
