@@ -897,7 +897,7 @@ const Landing = () => {
               </div>
 
               <div className="border-t border-slate-200/60 pt-4 mt-6 flex justify-between items-center">
-                <span className="text-xs text-slate-400 font-semibold">Built with React, Vite & Tailwind CSS</span>
+                {/* <span className="text-xs text-slate-400 font-semibold">Built with React, Vite & Tailwind CSS</span> */}
                 <Link to="/register" className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
                   {lang === 'en' ? 'Try it in the live app' : lang === 'hi' ? 'लाइव ऐप में आज़माएं' : 'लाईव्ह ॲपमध्ये वापरून पहा'}
                   <ArrowRight size={12} />
