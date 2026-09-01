@@ -170,15 +170,63 @@ export const AppProvider = ({ children }) => {
     return result;
   };
 
-  // Determine role for active mandal
-  const getActiveRole = () => {
-    if (!user || !activeMandalId) return 'VIEWER';
-    const mr = user.mandalRoles.find((r) => {
-      const id = r.mandalId._id || r.mandalId;
-      return id.toString() === activeMandalId.toString();
+  // Determine role and custom permissions for active mandal
+  const getActiveRoleAndPermissions = () => {
+    if (!user || !activeMandalId) {
+      return {
+        role: 'MEMBER',
+        permissions: user?.permissions || [],
+        customPermissions: [],
+      };
+    }
+
+    const mr = user.mandalRoles?.find((r) => {
+      const id = r.mandalId?._id || r.mandalId;
+      return id && id.toString() === activeMandalId.toString();
     });
-    return mr ? mr.role : 'VIEWER';
+
+    const currentRole = mr ? mr.role : (user.role || 'MEMBER');
+    const customPermissions = mr?.customPermissions || user.customPermissions || [];
+    
+    // If backend already populated effective permissions
+    let permissions = user.permissions || [];
+    if (!permissions || permissions.length === 0) {
+      if (currentRole === 'MANDAL_ADMIN' || currentRole === 'SUPER_ADMIN') {
+        permissions = ['*'];
+      } else if (customPermissions.length > 0) {
+        permissions = customPermissions;
+      }
+    }
+
+    return {
+      role: currentRole,
+      permissions,
+      customPermissions,
+    };
   };
+
+  const activeInfo = getActiveRoleAndPermissions();
+  const currentRole = activeInfo.role;
+  const currentPermissions = activeInfo.permissions;
+
+  // Permission Check Function
+  const hasPermission = (requiredPermission) => {
+    if (!currentRole) return false;
+    if (currentRole === 'MANDAL_ADMIN' || currentRole === 'SUPER_ADMIN') return true;
+    if (currentPermissions.includes('*')) return true;
+    return currentPermissions.includes(requiredPermission);
+  };
+
+  // Multiple Permission Check (Any match)
+  const hasAnyPermission = (permissionsList = []) => {
+    if (!currentRole) return false;
+    if (currentRole === 'MANDAL_ADMIN' || currentRole === 'SUPER_ADMIN') return true;
+    return permissionsList.some((perm) => hasPermission(perm));
+  };
+
+  const isAdmin = currentRole === 'MANDAL_ADMIN' || currentRole === 'SUPER_ADMIN';
+  const isMember = currentRole === 'MEMBER' || currentRole === 'VIEWER';
+  const isTreasurer = currentRole === 'TREASURER' || currentRole === 'ACCOUNTANT';
 
   return (
     <AppContext.Provider
@@ -201,7 +249,13 @@ export const AppProvider = ({ children }) => {
         switchMandal,
         refreshNotifications,
         t,
-        role: getActiveRole(),
+        role: currentRole,
+        permissions: currentPermissions,
+        hasPermission,
+        hasAnyPermission,
+        isAdmin,
+        isMember,
+        isTreasurer,
         refetchUser: loadInitialData,
       }}
     >

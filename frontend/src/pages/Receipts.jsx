@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 
 const Receipts = () => {
-  const { t, activeFestivalId, settings, role } = useApp();
+  const { t, activeFestivalId, settings, role, hasPermission } = useApp();
 
   const [receipts, setReceipts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -233,10 +233,10 @@ ${receiptUrl}`;
             <span>{t('receipts.exportCsv')}</span>
           </button>
           
-          {(role === 'MANDAL_ADMIN' || role === 'TREASURER' || role === 'RECEIPT_OPERATOR') && (
+          {hasPermission('receipts:create') && (
             <button
               onClick={() => setModalOpen(true)}
-              className="btn-primary text-xs font-semibold py-2 px-3 flex items-center gap-1.5"
+              className="btn-primary text-xs font-semibold py-2 px-3 flex items-center gap-1.5 cursor-pointer shadow-sm"
             >
               <Plus size={15} />
               <span>नवीन पावती तयार करा</span>
@@ -395,10 +395,10 @@ ${receiptUrl}`;
                               >
                                 <Share2 size={13} />
                               </button>
-                              {(role === 'MANDAL_ADMIN' || role === 'TREASURER') && (
+                              {hasPermission('receipts:cancel') && (
                                 <button
                                   onClick={() => handleCancelReceipt(r._id)}
-                                  className="p-1 rounded bg-red-50 border border-red-200 text-red-600 hover:bg-red-100"
+                                  className="p-1 rounded bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 cursor-pointer"
                                   title="Cancel Receipt"
                                 >
                                   <Trash2 size={13} />

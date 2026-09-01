@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 
 const Expenses = () => {
-  const { t, activeFestivalId, role } = useApp();
+  const { t, activeFestivalId, role, hasPermission } = useApp();
 
   const [expenses, setExpenses] = useState([]);
   const [vendors, setVendors] = useState([]);
@@ -210,10 +210,10 @@ const Expenses = () => {
             <span>Excel Export</span>
           </button>
           
-          {(role === 'MANDAL_ADMIN' || role === 'TREASURER' || role === 'ACCOUNTANT') && (
+          {hasPermission('expenses:create') && (
             <button
               onClick={() => setModalOpen(true)}
-              className="btn-primary text-xs font-semibold py-2 px-3 flex items-center gap-1.5"
+              className="btn-primary text-xs font-semibold py-2 px-3 flex items-center gap-1.5 cursor-pointer shadow-sm"
             >
               <Plus size={15} />
               <span>नवीन खर्च नोंद / Record Expense</span>
@@ -332,7 +332,7 @@ const Expenses = () => {
                       </td>
                       <td className="px-6 py-3.5">
                         <div className="flex items-center justify-center gap-1.5">
-                          {isPending && (role === 'MANDAL_ADMIN' || role === 'TREASURER') && (
+                          {isPending && hasPermission('expenses:approve') && (
                             <>
                               <button
                                 onClick={() => handleApprove(e._id)}
@@ -348,7 +348,7 @@ const Expenses = () => {
                               </button>
                             </>
                           )}
-                          {isApproved && (role === 'MANDAL_ADMIN' || role === 'TREASURER') && (
+                          {isApproved && hasPermission('expenses:pay') && (
                             <button
                               onClick={() => handlePay(e._id)}
                               className="px-2.5 py-1 rounded bg-orange-600 border border-orange-700 text-white font-bold text-[9px] hover:bg-orange-750 cursor-pointer shadow-sm"

@@ -4,7 +4,7 @@ import axios from 'axios';
 import { Plus, Calendar, Clock, MapPin, User, Trash2, HeartHandshake, CheckCircle, X } from 'lucide-react';
 
 const Events = () => {
-  const { activeFestivalId, role } = useApp();
+  const { activeFestivalId, role, hasPermission } = useApp();
 
   const [events, setEvents] = useState([]);
   const [members, setMembers] = useState([]);
@@ -112,10 +112,10 @@ const Events = () => {
           </p>
         </div>
 
-        {(role === 'MANDAL_ADMIN' || role === 'TREASURER' || role === 'EVENT_MANAGER') && (
+        {hasPermission('events:manage') && (
           <button
             onClick={() => setModalOpen(true)}
-            className="btn-primary text-xs font-semibold py-2 px-3 flex items-center gap-1.5 self-start"
+            className="btn-primary text-xs font-semibold py-2 px-3 flex items-center gap-1.5 self-start cursor-pointer shadow-sm"
           >
             <Plus size={15} />
             <span>नवीन कार्यक्रम / Add Event</span>
@@ -177,10 +177,10 @@ const Events = () => {
                 )}
                 <span className="badge-success">{e.status}</span>
                 
-                {(role === 'MANDAL_ADMIN' || role === 'TREASURER' || role === 'EVENT_MANAGER') && (
+                {hasPermission('events:manage') && (
                   <button
                     onClick={() => handleDelete(e._id)}
-                    className="p-1 rounded text-slate-400 hover:text-red-500 hover:bg-slate-50"
+                    className="p-1 rounded text-slate-400 hover:text-red-500 hover:bg-slate-50 cursor-pointer"
                     title="Delete Event"
                   >
                     <Trash2 size={14} />

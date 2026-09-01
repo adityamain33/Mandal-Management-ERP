@@ -4,7 +4,7 @@ import axios from 'axios';
 import { Search, Plus, Filter, CheckCircle, XCircle, FileSpreadsheet, User, Smartphone, Sparkles, X } from 'lucide-react';
 
 const Donations = () => {
-  const { t, activeFestivalId, role } = useApp();
+  const { t, activeFestivalId, role, hasPermission } = useApp();
 
   const [donations, setDonations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -150,10 +150,10 @@ const Donations = () => {
             <span>Excel Export</span>
           </button>
           
-          {(role === 'MANDAL_ADMIN' || role === 'TREASURER' || role === 'RECEIPT_OPERATOR') && (
+          {hasPermission('donations:create') && (
             <button
               onClick={() => setModalOpen(true)}
-              className="btn-primary text-xs font-semibold py-2 px-3 flex items-center gap-1.5"
+              className="btn-primary text-xs font-semibold py-2 px-3 flex items-center gap-1.5 cursor-pointer shadow-sm"
             >
               <Plus size={15} />
               <span>नवीन देणगी नोंद / Record Donation</span>
@@ -249,19 +249,19 @@ const Donations = () => {
                     </td>
                     <td className="px-6 py-3.5">
                       <div className="flex items-center justify-center gap-1.5">
-                        {d.status === 'PENDING' && (role === 'MANDAL_ADMIN' || role === 'TREASURER') && (
+                        {d.status === 'PENDING' && hasPermission('donations:status') && (
                           <button
                             onClick={() => handleUpdateStatus(d._id, 'PAID')}
-                            className="p-1 rounded bg-green-50 border border-green-200 text-green-700 hover:bg-green-100 flex items-center gap-1 font-bold text-[10px] px-2 py-1"
+                            className="p-1 rounded bg-green-50 border border-green-200 text-green-700 hover:bg-green-100 flex items-center gap-1 font-bold text-[10px] px-2 py-1 cursor-pointer"
                           >
                             <CheckCircle size={12} />
                             <span>Mark Paid</span>
                           </button>
                         )}
-                        {d.status !== 'CANCELLED' && (role === 'MANDAL_ADMIN' || role === 'TREASURER') && (
+                        {d.status !== 'CANCELLED' && hasPermission('donations:status') && (
                           <button
                             onClick={() => handleUpdateStatus(d._id, 'CANCELLED')}
-                            className="p-1 rounded bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 flex items-center gap-1 font-bold text-[10px] px-2 py-1"
+                            className="p-1 rounded bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 flex items-center gap-1 font-bold text-[10px] px-2 py-1 cursor-pointer"
                           >
                             <XCircle size={12} />
                             <span>Cancel</span>

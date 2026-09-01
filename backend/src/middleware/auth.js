@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import { computePermissions } from '../config/permissions.js';
 
 export const protect = async (req, res, next) => {
   let token;
@@ -26,14 +27,18 @@ export const protect = async (req, res, next) => {
 
     if (activeMandalId) {
       req.mandalId = activeMandalId;
-      // Get the role of the user for this specific mandal
+      // Get the role and customPermissions of the user for this specific mandal
       const currentMandalRole = user.mandalRoles.find(
         (mr) => mr.mandalId.toString() === activeMandalId.toString()
       );
-      req.role = currentMandalRole ? currentMandalRole.role : 'VIEWER';
+      req.role = currentMandalRole ? currentMandalRole.role : 'MEMBER';
+      req.customPermissions = currentMandalRole?.customPermissions || [];
+      req.permissions = computePermissions(req.role, req.customPermissions);
     } else {
       req.mandalId = null;
-      req.role = 'VIEWER';
+      req.role = 'MEMBER';
+      req.customPermissions = [];
+      req.permissions = computePermissions('MEMBER', []);
     }
 
     next();
@@ -62,3 +67,31 @@ export const authorize = (...roles) => {
     next();
   };
 };
+
+/**
+ * Middleware to check if user has at least one of the required permissions
+ */
+export const checkPermission = (...requiredPermissions) => {
+  return (req, res, next) => {
+    if (!req.role) {
+      return res.status(403).json({ message: 'Forbidden, no role mapped' });
+    }
+
+    // MANDAL_ADMIN and SUPER_ADMIN have full override permissions
+    if (req.role === 'MANDAL_ADMIN' || req.role === 'SUPER_ADMIN') {
+      return next();
+    }
+
+    const userPerms = req.permissions || [];
+    const hasPermission = requiredPermissions.some((perm) => userPerms.includes(perm));
+
+    if (!hasPermission) {
+      return res.status(403).json({
+        message: `Forbidden: You do not have permission for this action (${requiredPermissions.join(', ')})`,
+      });
+    }
+
+    next();
+  };
+};
+

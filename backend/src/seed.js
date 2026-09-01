@@ -87,7 +87,16 @@ const seedData = async () => {
       activeMandalId: mandal._id,
       mandalRoles: [{ mandalId: mandal._id, role: 'VOLUNTEER_MANAGER' }],
     });
-    console.log('Users seeded.');
+
+    const memberUser = await User.create({
+      name: 'श्री. तुषार विठ्ठल जाधव',
+      email: 'member@mandalsetu.com',
+      mobile: '9881007788',
+      password: 'Password123',
+      activeMandalId: mandal._id,
+      mandalRoles: [{ mandalId: mandal._id, role: 'MEMBER' }],
+    });
+    console.log('Users seeded (Admin, Treasurer, Volunteer Manager, Member).');
 
     // 3. Create Settings
     await Setting.create({

@@ -25,6 +25,8 @@ import {
   Activity,
 } from 'lucide-react';
 
+import { ROLE_LABELS } from '../utils/permissions.js';
+
 const DashboardLayout = ({ children }) => {
   const {
     t,
@@ -35,6 +37,7 @@ const DashboardLayout = ({ children }) => {
     activeFestivalYear,
     logoutUser,
     role,
+    hasPermission,
     notifications,
     refreshNotifications,
   } = useApp();
@@ -55,19 +58,19 @@ const DashboardLayout = ({ children }) => {
   const [aiLoading, setAiLoading] = useState(false);
 
   const navigationItems = [
-    { name: t('sidebar.dashboard'), path: '/dashboard', icon: LayoutDashboard },
-    { name: t('sidebar.receipts'), path: '/receipts', icon: Receipt },
-    { name: t('sidebar.donations'), path: '/donations', icon: IndianRupee },
-    { name: t('sidebar.expenses'), path: '/expenses', icon: Coins },
-    { name: t('sidebar.accounting'), path: '/accounting', icon: BookOpen },
-    { name: t('sidebar.vendors'), path: '/vendors', icon: Store },
-    { name: t('sidebar.members'), path: '/members', icon: Users },
-    { name: t('sidebar.donors'), path: '/donors', icon: Users },
-    { name: t('sidebar.volunteers'), path: '/volunteers', icon: HeartHandshake },
-    { name: t('sidebar.events'), path: '/events', icon: Calendar },
-    { name: t('sidebar.reports'), path: '/reports', icon: FileBarChart2 },
-    { name: t('sidebar.auditLogs'), path: '/audit-logs', icon: ClipboardList, adminOnly: true },
-    { name: t('sidebar.settings'), path: '/settings', icon: SettingsIcon },
+    { name: t('sidebar.dashboard'), path: '/dashboard', icon: LayoutDashboard, permission: 'dashboard:view' },
+    { name: t('sidebar.receipts'), path: '/receipts', icon: Receipt, permission: 'receipts:view' },
+    { name: t('sidebar.donations'), path: '/donations', icon: IndianRupee, permission: 'donations:view' },
+    { name: t('sidebar.expenses'), path: '/expenses', icon: Coins, permission: 'expenses:view' },
+    { name: t('sidebar.accounting'), path: '/accounting', icon: BookOpen, permission: 'accounting:view' },
+    { name: t('sidebar.vendors'), path: '/vendors', icon: Store, permission: 'vendors:view' },
+    { name: t('sidebar.members'), path: '/members', icon: Users, permission: 'members:view' },
+    { name: t('sidebar.donors'), path: '/donors', icon: Users, permission: 'donors:view' },
+    { name: t('sidebar.volunteers'), path: '/volunteers', icon: HeartHandshake, permission: 'volunteers:view' },
+    { name: t('sidebar.events'), path: '/events', icon: Calendar, permission: 'events:view' },
+    { name: t('sidebar.reports'), path: '/reports', icon: FileBarChart2, permission: 'reports:view' },
+    { name: t('sidebar.auditLogs'), path: '/audit-logs', icon: ClipboardList, permission: 'audit_logs:view' },
+    { name: t('sidebar.settings'), path: '/settings', icon: SettingsIcon, permission: 'settings:view' },
   ];
 
   const handleLogout = () => {
@@ -113,6 +116,8 @@ const DashboardLayout = ({ children }) => {
     'आज किती receipts generate झाल्या?',
     'कोणत्या category मध्ये सर्वात जास्त खर्च झाला?',
   ];
+
+  const roleLabel = ROLE_LABELS[role] ? (lang === 'en' ? ROLE_LABELS[role].en : ROLE_LABELS[role].mr) : role;
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50">
@@ -163,7 +168,7 @@ const DashboardLayout = ({ children }) => {
         {/* Navigation Modules */}
         <nav className="flex-1 overflow-y-auto px-4 py-2 space-y-1">
           {navigationItems.map((item) => {
-            if (item.adminOnly && role !== 'MANDAL_ADMIN' && role !== 'SUPER_ADMIN' && role !== 'TREASURER') {
+            if (item.permission && !hasPermission(item.permission)) {
               return null;
             }
             const isActive = location.pathname === item.path;
@@ -194,13 +199,13 @@ const DashboardLayout = ({ children }) => {
             </div>
             <div className="flex-1 overflow-hidden">
               <div className="text-sm font-semibold text-slate-800 truncate">{user?.name || 'User'}</div>
-              <div className="text-[10px] font-bold text-orange-600 uppercase tracking-wide">
-                {role.replace('_', ' ')}
+              <div className="text-[10px] font-bold text-orange-600 tracking-wide truncate">
+                {roleLabel}
               </div>
             </div>
             <button
               onClick={handleLogout}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-slate-100"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-slate-100 cursor-pointer"
               title={t('sidebar.logout')}
             >
               <LogOut size={16} />
@@ -270,65 +275,79 @@ const DashboardLayout = ({ children }) => {
             </div>
 
             {/* Quick Add Actions */}
-            <div className="relative">
-              <button
-                onClick={() => setQuickAddOpen(!quickAddOpen)}
-                className="flex items-center justify-center gap-1 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold p-2 sm:px-3 sm:py-2 rounded-lg shadow-sm active:scale-95 duration-150 cursor-pointer"
-              >
-                <Plus size={14} />
-                <span className="hidden sm:inline">{t('header.quickAdd')}</span>
-              </button>
+            {hasPermission('receipts:create') || hasPermission('donations:create') || hasPermission('expenses:create') || hasPermission('members:manage') || hasPermission('events:manage') || hasPermission('volunteers:manage') ? (
+              <div className="relative">
+                  <button
+                    onClick={() => setQuickAddOpen(!quickAddOpen)}
+                    className="flex items-center justify-center gap-1 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold p-2 sm:px-3 sm:py-2 rounded-lg shadow-sm active:scale-95 duration-150 cursor-pointer"
+                  >
+                    <Plus size={14} />
+                    <span className="hidden sm:inline">{t('header.quickAdd')}</span>
+                  </button>
 
-              {quickAddOpen && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setQuickAddOpen(false)} />
-                  <div className="absolute right-0 mt-2 w-48 z-20 origin-top-right rounded-lg bg-white p-1 border border-slate-100 shadow-lg ring-1 ring-black/5 focus:outline-none">
-                    <Link
-                      to="/receipts?action=create"
-                      className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 rounded-md"
-                      onClick={() => setQuickAddOpen(false)}
-                    >
-                      {t('header.newReceipt')}
-                    </Link>
-                    <Link
-                      to="/donations?action=create"
-                      className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 rounded-md"
-                      onClick={() => setQuickAddOpen(false)}
-                    >
-                      {t('header.newDonation')}
-                    </Link>
-                    <Link
-                      to="/expenses?action=create"
-                      className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 rounded-md"
-                      onClick={() => setQuickAddOpen(false)}
-                    >
-                      {t('header.newExpense')}
-                    </Link>
-                    <Link
-                      to="/members?action=create"
-                      className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 rounded-md"
-                      onClick={() => setQuickAddOpen(false)}
-                    >
-                      {t('header.newMember')}
-                    </Link>
-                    <Link
-                      to="/volunteers?action=create"
-                      className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 rounded-md"
-                      onClick={() => setQuickAddOpen(false)}
-                    >
-                      {t('header.newVolunteer')}
-                    </Link>
-                    <Link
-                      to="/events?action=create"
-                      className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 rounded-md"
-                      onClick={() => setQuickAddOpen(false)}
-                    >
-                      {t('header.newEvent')}
-                    </Link>
-                  </div>
-                </>
-              )}
-            </div>
+                  {quickAddOpen && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setQuickAddOpen(false)} />
+                      <div className="absolute right-0 mt-2 w-48 z-20 origin-top-right rounded-lg bg-white p-1 border border-slate-100 shadow-lg ring-1 ring-black/5 focus:outline-none">
+                        {hasPermission('receipts:create') && (
+                          <Link
+                            to="/receipts?action=create"
+                            className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 rounded-md"
+                            onClick={() => setQuickAddOpen(false)}
+                          >
+                            {t('header.newReceipt')}
+                          </Link>
+                        )}
+                        {hasPermission('donations:create') && (
+                          <Link
+                            to="/donations?action=create"
+                            className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 rounded-md"
+                            onClick={() => setQuickAddOpen(false)}
+                          >
+                            {t('header.newDonation')}
+                          </Link>
+                        )}
+                        {hasPermission('expenses:create') && (
+                          <Link
+                            to="/expenses?action=create"
+                            className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 rounded-md"
+                            onClick={() => setQuickAddOpen(false)}
+                          >
+                            {t('header.newExpense')}
+                          </Link>
+                        )}
+                        {hasPermission('members:manage') && (
+                          <Link
+                            to="/members?action=create"
+                            className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 rounded-md"
+                            onClick={() => setQuickAddOpen(false)}
+                          >
+                            {t('header.newMember')}
+                          </Link>
+                        )}
+                        {hasPermission('volunteers:manage') && (
+                          <Link
+                            to="/volunteers?action=create"
+                            className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 rounded-md"
+                            onClick={() => setQuickAddOpen(false)}
+                          >
+                            {t('header.newVolunteer')}
+                          </Link>
+                        )}
+                        {hasPermission('events:manage') && (
+                          <Link
+                            to="/events?action=create"
+                            className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 rounded-md"
+                            onClick={() => setQuickAddOpen(false)}
+                          >
+                            {t('header.newEvent')}
+                          </Link>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : null}
 
             {/* Notifications Dropdown */}
             <div className="relative">

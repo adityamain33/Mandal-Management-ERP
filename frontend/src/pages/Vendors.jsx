@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useApp } from '../contexts/AppContext.jsx';
 import axios from 'axios';
 import { Search, Store, Smartphone, MapPin, CreditCard, Plus, CheckCircle, X } from 'lucide-react';
 
 const Vendors = () => {
+  const { hasPermission } = useApp();
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -124,13 +126,15 @@ const Vendors = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => setModalOpen(true)}
-          className="btn-primary text-xs font-semibold py-2 px-3 flex items-center gap-1.5 self-start"
-        >
-          <Plus size={15} />
-          <span>नवीन विक्रेता नोंदणी / Add Vendor</span>
-        </button>
+        {hasPermission('vendors:manage') && (
+          <button
+            onClick={() => setModalOpen(true)}
+            className="btn-primary text-xs font-semibold py-2 px-3 flex items-center gap-1.5 self-start cursor-pointer shadow-sm"
+          >
+            <Plus size={15} />
+            <span>नवीन विक्रेता नोंदणी / Add Vendor</span>
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

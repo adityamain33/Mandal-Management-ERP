@@ -4,7 +4,7 @@ import axios from 'axios';
 import { Plus, CheckCircle, Clock, Heart, Users, ClipboardList, CheckSquare, Bookmark, X } from 'lucide-react';
 
 const Volunteers = () => {
-  const { activeFestivalId, role } = useApp();
+  const { activeFestivalId, role, hasPermission } = useApp();
 
   const [activeTab, setActiveTab] = useState('volunteers');
   const [volunteers, setVolunteers] = useState([]);
@@ -161,22 +161,24 @@ const Volunteers = () => {
         </div>
 
         <div className="flex items-center gap-2 self-start">
-          {activeTab === 'volunteers' ? (
-            <button
-              onClick={() => setRegisterModalOpen(true)}
-              className="btn-primary text-xs font-semibold py-2 px-3 flex items-center gap-1.5"
-            >
-              <Plus size={15} />
-              <span>स्वयंसेवक नोंदणी / Add Volunteer</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => setTaskModalOpen(true)}
-              className="btn-primary text-xs font-semibold py-2 px-3 flex items-center gap-1.5"
-            >
-              <Plus size={15} />
-              <span>नवीन काम वाटप / Assign Task</span>
-            </button>
+          {hasPermission('volunteers:manage') && (
+            activeTab === 'volunteers' ? (
+              <button
+                onClick={() => setRegisterModalOpen(true)}
+                className="btn-primary text-xs font-semibold py-2 px-3 flex items-center gap-1.5 cursor-pointer shadow-sm"
+              >
+                <Plus size={15} />
+                <span>स्वयंसेवक नोंदणी / Add Volunteer</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setTaskModalOpen(true)}
+                className="btn-primary text-xs font-semibold py-2 px-3 flex items-center gap-1.5 cursor-pointer shadow-sm"
+              >
+                <Plus size={15} />
+                <span>नवीन काम वाटप / Assign Task</span>
+              </button>
+            )
           )}
         </div>
       </div>

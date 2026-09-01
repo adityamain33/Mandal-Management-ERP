@@ -27,7 +27,11 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Mandal',
   },
-  // Map of mandalId to User Role
+  memberId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Member',
+  },
+  // Map of mandalId to User Role & Permissions
   mandalRoles: [
     {
       mandalId: {
@@ -45,10 +49,16 @@ const userSchema = new mongoose.Schema({
           'VOLUNTEER_MANAGER',
           'RECEIPT_OPERATOR',
           'EVENT_MANAGER',
+          'MEMBER',
           'VIEWER',
         ],
-        default: 'VIEWER',
+        default: 'MEMBER',
       },
+      customPermissions: [
+        {
+          type: String,
+        },
+      ],
     },
   ],
 }, {

@@ -4,6 +4,7 @@ import Setting from '../models/Setting.js';
 import Festival from '../models/Festival.js';
 import Account from '../models/Account.js';
 import jwt from 'jsonwebtoken';
+import { computePermissions, ALL_PERMISSIONS } from '../config/permissions.js';
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
@@ -61,6 +62,7 @@ export const register = async (req, res) => {
         {
           mandalId: mandal._id,
           role: 'MANDAL_ADMIN',
+          customPermissions: ALL_PERMISSIONS,
         },
       ],
     });
@@ -113,6 +115,7 @@ export const register = async (req, res) => {
       token: generateToken(user._id),
       activeMandalId: mandal._id,
       role: 'MANDAL_ADMIN',
+      permissions: ALL_PERMISSIONS,
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -130,17 +133,24 @@ export const login = async (req, res) => {
   try {
     // Find user by email or mobile
     const user = await User.findOne({
-      $or: [{ email: emailOrMobile.toLowerCase() }, { mobile: emailOrMobile }],
+      $or: [{ email: emailOrMobile.toLowerCase().trim() }, { mobile: emailOrMobile.trim() }],
     });
 
     if (user && (await user.comparePassword(password))) {
       // Find active mandal role
       const mandalId = user.activeMandalId;
-      let role = 'VIEWER';
+      let role = 'MEMBER';
+      let customPermissions = [];
+
       if (mandalId) {
         const mr = user.mandalRoles.find((r) => r.mandalId.toString() === mandalId.toString());
-        if (mr) role = mr.role;
+        if (mr) {
+          role = mr.role;
+          customPermissions = mr.customPermissions || [];
+        }
       }
+
+      const permissions = computePermissions(role, customPermissions);
 
       res.json({
         _id: user._id,
@@ -150,6 +160,8 @@ export const login = async (req, res) => {
         token: generateToken(user._id),
         activeMandalId: mandalId,
         role,
+        permissions,
+        customPermissions,
       });
     } else {
       res.status(401).json({ message: 'Invalid credentials' });
@@ -189,8 +201,35 @@ export const resetPassword = async (req, res) => {
 export const getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password').populate('mandalRoles.mandalId');
-    res.json(user);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const mandalId = req.mandalId || user.activeMandalId;
+    let currentRole = 'MEMBER';
+    let customPermissions = [];
+
+    if (mandalId) {
+      const mr = user.mandalRoles.find((r) => {
+        const id = r.mandalId?._id || r.mandalId;
+        return id && id.toString() === mandalId.toString();
+      });
+      if (mr) {
+        currentRole = mr.role;
+        customPermissions = mr.customPermissions || [];
+      }
+    }
+
+    const permissions = computePermissions(currentRole, customPermissions);
+
+    const userObj = user.toObject();
+    userObj.role = currentRole;
+    userObj.permissions = permissions;
+    userObj.customPermissions = customPermissions;
+
+    res.json(userObj);
   } catch (error) {
+    console.error('Profile error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
