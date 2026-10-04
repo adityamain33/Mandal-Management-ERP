@@ -1,47 +1,59 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const receiptSchema = new mongoose.Schema({
+const Receipt = sequelize.define('Receipt', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
   receiptNo: {
-    type: String,
-    required: true,
+    type: DataTypes.STRING,
+    allowNull: false,
   },
   donationId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Donation',
-    required: true,
+    type: DataTypes.INTEGER,
+    allowNull: false,
   },
   amount: {
-    type: Number,
-    required: true,
+    type: DataTypes.DOUBLE,
+    allowNull: false,
   },
   paymentMode: {
-    type: String,
-    required: true,
+    type: DataTypes.STRING,
+    allowNull: false,
   },
   collectorId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
+    type: DataTypes.INTEGER,
+    allowNull: false,
   },
   status: {
-    type: String,
-    enum: ['ACTIVE', 'CANCELLED'],
-    default: 'ACTIVE',
+    type: DataTypes.ENUM('ACTIVE', 'CANCELLED'),
+    defaultValue: 'ACTIVE',
   },
   mandalId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Mandal',
-    required: true,
+    type: DataTypes.INTEGER,
+    allowNull: false,
   },
   pdfPath: {
-    type: String,
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  _id: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return this.id;
+    },
   },
 }, {
+  tableName: 'receipts',
   timestamps: true,
+  indexes: [
+    {
+      unique: true,
+      fields: ['receiptNo', 'mandalId'],
+    },
+  ],
 });
 
-// Enforce unique receipt numbers per mandal
-receiptSchema.index({ receiptNo: 1, mandalId: 1 }, { unique: true });
-
-const Receipt = mongoose.model('Receipt', receiptSchema);
 export default Receipt;

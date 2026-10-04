@@ -1,55 +1,57 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const entrySchema = new mongoose.Schema({
-  accountId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Account',
-    required: true,
+const Transaction = sequelize.define('Transaction', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
   },
-  amount: {
-    type: Number,
-    required: true,
-    min: 0.01,
-  },
-  type: {
-    type: String,
-    required: true,
-    enum: ['DEBIT', 'CREDIT'],
-  },
-});
-
-const transactionSchema = new mongoose.Schema({
   date: {
-    type: Date,
-    required: true,
-    default: Date.now,
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW,
   },
   description: {
-    type: String,
-    required: true,
-    trim: true,
+    type: DataTypes.TEXT,
+    allowNull: false,
   },
-  entries: [entrySchema],
+  entries: {
+    type: DataTypes.JSON,
+    allowNull: false,
+  },
   mandalId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Mandal',
-    required: true,
+    type: DataTypes.INTEGER,
+    allowNull: false,
   },
   donationId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Donation',
+    type: DataTypes.INTEGER,
+    allowNull: true,
   },
   expenseId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Expense',
+    type: DataTypes.INTEGER,
+    allowNull: true,
   },
   receiptId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Receipt',
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
+  _id: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return this.id;
+    },
   },
 }, {
+  tableName: 'transactions',
   timestamps: true,
+  hooks: {
+    beforeCreate: (tx) => {
+      if (!tx.entries) {
+        tx.entries = [];
+      }
+    },
+  },
 });
 
-const Transaction = mongoose.model('Transaction', transactionSchema);
 export default Transaction;

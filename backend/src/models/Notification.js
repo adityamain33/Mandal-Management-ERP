@@ -1,35 +1,48 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const notificationSchema = new mongoose.Schema({
+const Notification = sequelize.define('Notification', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
   title: {
-    type: String,
-    required: true,
-    trim: true,
+    type: DataTypes.STRING,
+    allowNull: false,
   },
   message: {
-    type: String,
-    required: true,
-    trim: true,
+    type: DataTypes.TEXT,
+    allowNull: false,
   },
   type: {
-    type: String,
-    enum: ['INFO', 'SUCCESS', 'WARNING', 'ERROR'],
-    default: 'INFO',
+    type: DataTypes.ENUM('INFO', 'SUCCESS', 'WARNING', 'ERROR'),
+    defaultValue: 'INFO',
   },
-  readBy: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-    },
-  ],
+  readBy: {
+    type: DataTypes.JSON,
+    allowNull: true,
+  },
   mandalId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Mandal',
-    required: true,
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+  _id: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return this.id;
+    },
   },
 }, {
+  tableName: 'notifications',
   timestamps: true,
+  hooks: {
+    beforeCreate: (notif) => {
+      if (!notif.readBy) {
+        notif.readBy = [];
+      }
+    },
+  },
 });
 
-const Notification = mongoose.model('Notification', notificationSchema);
 export default Notification;

@@ -1,34 +1,47 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const accountSchema = new mongoose.Schema({
+const Account = sequelize.define('Account', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
   code: {
-    type: String,
-    required: true,
+    type: DataTypes.STRING,
+    allowNull: false,
   },
   name: {
-    type: String,
-    required: true,
-    trim: true,
+    type: DataTypes.STRING,
+    allowNull: false,
   },
   type: {
-    type: String,
-    required: true,
-    enum: ['ASSET', 'LIABILITY', 'INCOME', 'EXPENSE', 'EQUITY'],
+    type: DataTypes.ENUM('ASSET', 'LIABILITY', 'INCOME', 'EXPENSE', 'EQUITY'),
+    allowNull: false,
   },
   mandalId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Mandal',
-    required: true,
+    type: DataTypes.INTEGER,
+    allowNull: false,
   },
   description: {
-    type: String,
-    trim: true,
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  _id: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return this.id;
+    },
   },
 }, {
+  tableName: 'accounts',
   timestamps: true,
+  indexes: [
+    {
+      unique: true,
+      fields: ['code', 'mandalId'],
+    },
+  ],
 });
 
-accountSchema.index({ code: 1, mandalId: 1 }, { unique: true });
-
-const Account = mongoose.model('Account', accountSchema);
 export default Account;

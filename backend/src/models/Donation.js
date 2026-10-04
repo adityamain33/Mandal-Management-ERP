@@ -1,68 +1,60 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const donationSchema = new mongoose.Schema({
+const Donation = sequelize.define('Donation', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
   donorId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Donor',
-    required: true,
+    type: DataTypes.INTEGER,
+    allowNull: false,
   },
   amount: {
-    type: Number,
-    required: true,
-    min: 1,
+    type: DataTypes.DOUBLE,
+    allowNull: false,
+    validate: {
+      min: 1,
+    },
   },
   purpose: {
-    type: String,
-    required: true,
-    enum: [
-      'गणपती वर्गणी',
-      'मुख्य देणगी',
-      'महाप्रसाद',
-      'सजावट',
-      'सांस्कृतिक कार्यक्रम',
-      'सामाजिक उपक्रम',
-      'इतर',
-      'Ganpati Vargani',
-      'Main Donation',
-      'Mahaprasad',
-      'Decoration',
-      'Cultural Program',
-      'Social Work',
-      'Other',
-    ],
+    type: DataTypes.STRING,
+    allowNull: false,
   },
   paymentMode: {
-    type: String,
-    required: true,
-    enum: ['CASH', 'UPI', 'BANK TRANSFER', 'CHEQUE', 'ONLINE'],
-    default: 'CASH',
+    type: DataTypes.ENUM('CASH', 'UPI', 'BANK TRANSFER', 'CHEQUE', 'ONLINE'),
+    defaultValue: 'CASH',
   },
   status: {
-    type: String,
-    enum: ['PAID', 'PENDING', 'CANCELLED', 'REFUNDED'],
-    default: 'PAID',
+    type: DataTypes.ENUM('PAID', 'PENDING', 'CANCELLED', 'REFUNDED'),
+    defaultValue: 'PAID',
   },
   mandalId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Mandal',
-    required: true,
+    type: DataTypes.INTEGER,
+    allowNull: false,
   },
   festivalId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Festival',
-    required: true,
+    type: DataTypes.INTEGER,
+    allowNull: false,
   },
   notes: {
-    type: String,
-    trim: true,
+    type: DataTypes.TEXT,
+    allowNull: true,
   },
   collectorId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
+  _id: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return this.id;
+    },
   },
 }, {
+  tableName: 'donations',
   timestamps: true,
 });
 
-const Donation = mongoose.model('Donation', donationSchema);
 export default Donation;

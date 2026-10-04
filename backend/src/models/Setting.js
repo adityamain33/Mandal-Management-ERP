@@ -1,80 +1,98 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const settingSchema = new mongoose.Schema({
+const Setting = sequelize.define('Setting', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
   mandalId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Mandal',
-    required: true,
+    type: DataTypes.INTEGER,
+    allowNull: false,
     unique: true,
   },
   mandalLogo: {
-    type: String,
-    default: '',
+    type: DataTypes.TEXT('long'),
+    allowNull: true,
   },
   authorizedSignature: {
-    type: String,
-    default: '',
+    type: DataTypes.TEXT('long'),
+    allowNull: true,
   },
   receiptPrefix: {
-    type: String,
-    default: 'GM/26',
+    type: DataTypes.STRING,
+    defaultValue: 'GM/26',
   },
   receiptStartNumber: {
-    type: Number,
-    default: 1,
+    type: DataTypes.INTEGER,
+    defaultValue: 1,
   },
   expensePrefix: {
-    type: String,
-    default: 'EXP/26',
+    type: DataTypes.STRING,
+    defaultValue: 'EXP/26',
   },
   expenseStartNumber: {
-    type: Number,
-    default: 1,
+    type: DataTypes.INTEGER,
+    defaultValue: 1,
   },
-  paymentModes: [
-    {
-      type: String,
-      default: ['CASH', 'UPI', 'BANK TRANSFER', 'CHEQUE', 'ONLINE'],
+  paymentModes: {
+    type: DataTypes.JSON,
+    allowNull: true,
+  },
+  donationCategories: {
+    type: DataTypes.JSON,
+    allowNull: true,
+  },
+  expenseCategories: {
+    type: DataTypes.JSON,
+    allowNull: true,
+  },
+  _id: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return this.id;
     },
-  ],
-  donationCategories: [
-    {
-      type: String,
-      default: [
-        'गणपती वर्गणी',
-        'मुख्य देणगी',
-        'महाप्रसाद',
-        'सजावट',
-        'सांस्कृतिक कार्यक्रम',
-        'सामाजिक उपक्रम',
-        'इतर',
-      ],
-    },
-  ],
-  expenseCategories: [
-    {
-      type: String,
-      default: [
-        'Decoration',
-        'Sound System',
-        'Lighting',
-        'Idol',
-        'Pandal',
-        'Prasad',
-        'Cultural Events',
-        'Security',
-        'Electricity',
-        'Cleaning',
-        'Transportation',
-        'Advertisement',
-        'Social Work',
-        'Miscellaneous',
-      ],
-    },
-  ],
+  },
 }, {
+  tableName: 'settings',
   timestamps: true,
+  hooks: {
+    beforeCreate: (setting) => {
+      if (!setting.paymentModes) {
+        setting.paymentModes = ['CASH', 'UPI', 'BANK TRANSFER', 'CHEQUE', 'ONLINE'];
+      }
+      if (!setting.donationCategories) {
+        setting.donationCategories = [
+          'गणपती वर्गणी',
+          'मुख्य देणगी',
+          'महाप्रसाद',
+          'सजावट',
+          'सांस्कृतिक कार्यक्रम',
+          'सामाजिक उपक्रम',
+          'इतर',
+        ];
+      }
+      if (!setting.expenseCategories) {
+        setting.expenseCategories = [
+          'Decoration',
+          'Sound System',
+          'Lighting',
+          'Idol',
+          'Pandal',
+          'Prasad',
+          'Cultural Events',
+          'Security',
+          'Electricity',
+          'Cleaning',
+          'Transportation',
+          'Advertisement',
+          'Social Work',
+          'Miscellaneous',
+        ];
+      }
+    },
+  },
 });
 
-const Setting = mongoose.model('Setting', settingSchema);
 export default Setting;

@@ -1,90 +1,87 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const expenseSchema = new mongoose.Schema({
+const Expense = sequelize.define('Expense', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
   expenseNo: {
-    type: String,
-    required: true,
+    type: DataTypes.STRING,
+    allowNull: false,
   },
   date: {
-    type: Date,
-    required: true,
-    default: Date.now,
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW,
   },
   category: {
-    type: String,
-    required: true,
-    enum: [
-      'Decoration',
-      'Sound System',
-      'Lighting',
-      'Idol',
-      'Pandal',
-      'Prasad',
-      'Cultural Events',
-      'Security',
-      'Electricity',
-      'Cleaning',
-      'Transportation',
-      'Advertisement',
-      'Social Work',
-      'Miscellaneous',
-    ],
+    type: DataTypes.STRING,
+    allowNull: false,
   },
   description: {
-    type: String,
-    required: true,
-    trim: true,
+    type: DataTypes.TEXT,
+    allowNull: false,
   },
   amount: {
-    type: Number,
-    required: true,
-    min: 1,
+    type: DataTypes.DOUBLE,
+    allowNull: false,
+    validate: {
+      min: 1,
+    },
   },
   paymentMode: {
-    type: String,
-    required: true,
-    enum: ['CASH', 'UPI', 'BANK TRANSFER', 'CHEQUE', 'ONLINE'],
-    default: 'CASH',
+    type: DataTypes.ENUM('CASH', 'UPI', 'BANK TRANSFER', 'CHEQUE', 'ONLINE'),
+    defaultValue: 'CASH',
   },
   vendorId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Vendor',
+    type: DataTypes.INTEGER,
+    allowNull: true,
   },
   paidBy: {
-    type: String,
-    required: true,
+    type: DataTypes.STRING,
+    allowNull: false,
   },
   status: {
-    type: String,
-    enum: ['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED', 'PAID'],
-    default: 'DRAFT',
+    type: DataTypes.ENUM('DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED', 'PAID'),
+    defaultValue: 'DRAFT',
   },
   approvedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    type: DataTypes.INTEGER,
+    allowNull: true,
   },
   notes: {
-    type: String,
-    trim: true,
+    type: DataTypes.TEXT,
+    allowNull: true,
   },
   billUrl: {
-    type: String,
+    type: DataTypes.STRING,
+    allowNull: true,
   },
   mandalId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Mandal',
-    required: true,
+    type: DataTypes.INTEGER,
+    allowNull: false,
   },
   festivalId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Festival',
-    required: true,
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+  _id: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return this.id;
+    },
   },
 }, {
+  tableName: 'expenses',
   timestamps: true,
+  indexes: [
+    {
+      unique: true,
+      fields: ['expenseNo', 'mandalId'],
+    },
+  ],
 });
 
-expenseSchema.index({ expenseNo: 1, mandalId: 1 }, { unique: true });
-
-const Expense = mongoose.model('Expense', expenseSchema);
 export default Expense;

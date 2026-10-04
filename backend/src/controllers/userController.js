@@ -1,5 +1,5 @@
-import User from '../models/User.js';
-import Member from '../models/Member.js';
+import { User, Member } from '../models/index.js';
+import { Op } from 'sequelize';
 import { MODULE_PERMISSIONS, ROLE_DEFAULT_PERMISSIONS, computePermissions } from '../config/permissions.js';
 
 // Get permission metadata & default presets
@@ -19,26 +19,43 @@ export const getMandalUsers = async (req, res) => {
   const mandalId = req.mandalId;
 
   try {
-    const users = await User.find({ 'mandalRoles.mandalId': mandalId })
-      .select('-password')
-      .populate('memberId', 'name mobile email role status')
-      .sort({ createdAt: -1 });
+    const allUsers = await User.findAll({
+      attributes: { exclude: ['password'] },
+      include: [
+        {
+          model: Member,
+          as: 'member',
+          attributes: ['id', 'name', 'mobile', 'email', 'role', 'status'],
+        },
+      ],
+      order: [['createdAt', 'DESC']],
+    });
 
-    const formatted = users.map((u) => {
-      const mr = u.mandalRoles.find((r) => r.mandalId.toString() === mandalId.toString());
+    const mandalUsers = allUsers.filter((u) => {
+      const roles = u.mandalRoles || [];
+      return (
+        String(u.activeMandalId) === String(mandalId) ||
+        roles.some((r) => String(r.mandalId) === String(mandalId))
+      );
+    });
+
+    const formatted = mandalUsers.map((u) => {
+      const roles = u.mandalRoles || [];
+      const mr = roles.find((r) => String(r.mandalId) === String(mandalId));
       const role = mr ? mr.role : 'MEMBER';
       const customPermissions = mr?.customPermissions || [];
       const effectivePermissions = computePermissions(role, customPermissions);
 
       return {
-        _id: u._id,
+        _id: u.id,
+        id: u.id,
         name: u.name,
         email: u.email,
         mobile: u.mobile,
         role,
         customPermissions,
         effectivePermissions,
-        memberId: u.memberId,
+        memberId: u.member ? { ...u.member.toJSON(), _id: u.member.id } : null,
         createdAt: u.createdAt,
       };
     });
@@ -61,34 +78,38 @@ export const updateUserRoleAndPermissions = async (req, res) => {
   }
 
   try {
-    const user = await User.findById(id);
+    const user = await User.findByPk(id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const mrIndex = user.mandalRoles.findIndex(
-      (r) => r.mandalId.toString() === mandalId.toString()
+    const mandalRoles = [...(user.mandalRoles || [])];
+    const mrIndex = mandalRoles.findIndex(
+      (r) => String(r.mandalId) === String(mandalId)
     );
 
     if (mrIndex >= 0) {
-      user.mandalRoles[mrIndex].role = role;
+      mandalRoles[mrIndex].role = role;
       if (Array.isArray(customPermissions)) {
-        user.mandalRoles[mrIndex].customPermissions = customPermissions;
+        mandalRoles[mrIndex].customPermissions = customPermissions;
       }
     } else {
-      user.mandalRoles.push({
-        mandalId,
+      mandalRoles.push({
+        mandalId: Number(mandalId),
         role,
         customPermissions: Array.isArray(customPermissions) ? customPermissions : [],
       });
     }
 
+    user.mandalRoles = mandalRoles;
     await user.save();
+
+    const activeRoleObj = mandalRoles[mrIndex >= 0 ? mrIndex : mandalRoles.length - 1];
 
     res.json({
       message: 'User permissions updated successfully',
       role,
-      customPermissions: user.mandalRoles[mrIndex >= 0 ? mrIndex : user.mandalRoles.length - 1].customPermissions,
+      customPermissions: activeRoleObj.customPermissions,
       effectivePermissions: computePermissions(role, customPermissions),
     });
   } catch (error) {
@@ -108,7 +129,7 @@ export const createOrUpdateMemberLogin = async (req, res) => {
   }
 
   try {
-    const member = await Member.findOne({ _id: memberId, mandalId });
+    const member = await Member.findOne({ where: { id: memberId, mandalId } });
     if (!member) {
       return res.status(404).json({ message: 'Member not found' });
     }
@@ -118,36 +139,40 @@ export const createOrUpdateMemberLogin = async (req, res) => {
 
     // Check if user account exists with this email/mobile or memberId
     let user = await User.findOne({
-      $or: [
-        { memberId: member._id },
-        { email: memberEmail },
-        { mobile: memberMobile },
-      ],
+      where: {
+        [Op.or]: [
+          { memberId: member.id },
+          { email: memberEmail },
+          { mobile: memberMobile },
+        ],
+      },
     });
 
     if (user) {
       // Update existing user
       user.password = password;
-      user.memberId = member._id;
+      user.memberId = member.id;
       user.name = member.name;
       user.email = memberEmail;
       user.mobile = memberMobile;
 
-      const mrIndex = user.mandalRoles.findIndex(
-        (r) => r.mandalId.toString() === mandalId.toString()
+      const mandalRoles = [...(user.mandalRoles || [])];
+      const mrIndex = mandalRoles.findIndex(
+        (r) => String(r.mandalId) === String(mandalId)
       );
 
       if (mrIndex >= 0) {
-        user.mandalRoles[mrIndex].role = role;
-        user.mandalRoles[mrIndex].customPermissions = customPermissions;
+        mandalRoles[mrIndex].role = role;
+        mandalRoles[mrIndex].customPermissions = customPermissions;
       } else {
-        user.mandalRoles.push({
-          mandalId,
+        mandalRoles.push({
+          mandalId: Number(mandalId),
           role,
           customPermissions,
         });
       }
 
+      user.mandalRoles = mandalRoles;
       await user.save();
     } else {
       // Create new user
@@ -156,11 +181,11 @@ export const createOrUpdateMemberLogin = async (req, res) => {
         email: memberEmail,
         mobile: memberMobile,
         password,
-        memberId: member._id,
-        activeMandalId: mandalId,
+        memberId: member.id,
+        activeMandalId: Number(mandalId),
         mandalRoles: [
           {
-            mandalId,
+            mandalId: Number(mandalId),
             role,
             customPermissions,
           },
@@ -170,7 +195,9 @@ export const createOrUpdateMemberLogin = async (req, res) => {
 
     res.status(200).json({
       message: 'Member login created successfully',
-      userId: user._id,
+      _id: user.id,
+      id: user.id,
+      userId: user.id,
       email: user.email,
       mobile: user.mobile,
       role,

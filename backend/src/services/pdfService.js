@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { numberToWords } from '../utils/numberToWords.js';
-import Setting from '../models/Setting.js';
+import { Setting } from '../models/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,7 +28,8 @@ export const generateReceiptPDF = (receipt, donation, donor, mandal, collectorNa
       // Fetch settings for logos/signatures
       let settings = null;
       try {
-        settings = await Setting.findOne({ mandalId: mandal._id || receipt.mandalId });
+        const mId = mandal?.id || mandal?._id || receipt.mandalId;
+        settings = await Setting.findOne({ where: { mandalId: mId } });
       } catch (err) {
         console.error('Error fetching settings for receipt PDF:', err);
       }
@@ -39,7 +40,8 @@ export const generateReceiptPDF = (receipt, donation, donor, mandal, collectorNa
         fs.mkdirSync(uploadsDir, { recursive: true });
       }
 
-      const fileName = `receipt_${receipt.receiptNo.replace(/\//g, '_')}.pdf`;
+      const safeReceiptNo = String(receipt.receiptNo || 'REC').replace(/[\/\\]/g, '_');
+      const fileName = `receipt_${safeReceiptNo}.pdf`;
       const filePath = path.join(uploadsDir, fileName);
 
       const doc = new PDFDocument({
@@ -73,11 +75,11 @@ export const generateReceiptPDF = (receipt, donation, donor, mandal, collectorNa
       }
 
       // Title & Header
-      doc.fillColor('#ea580c').fontSize(16).text(mandal.name, { align: 'center' });
-      if (mandal.registrationDetails) {
+      doc.fillColor('#ea580c').fontSize(16).text(mandal?.name || 'Mandal', { align: 'center' });
+      if (mandal?.registrationDetails) {
         doc.fillColor('#4b5563').fontSize(8).text(`Reg. No: ${mandal.registrationDetails}`, { align: 'center' });
       }
-      doc.fontSize(8).text(mandal.address || '', { align: 'center' });
+      doc.fontSize(8).text(mandal?.address || '', { align: 'center' });
       doc.moveDown(0.5);
 
       // Horizontal Line
@@ -89,31 +91,32 @@ export const generateReceiptPDF = (receipt, donation, donor, mandal, collectorNa
       // Receipt Metadata
       doc.fillColor('#1f2937').fontSize(10);
       doc.text(`Receipt No: ${receipt.receiptNo}`, 30, 115);
-      doc.text(`Date: ${new Date(donation.createdAt).toLocaleDateString()}`, doc.page.width - 150, 115);
+      const donationDate = donation?.createdAt ? new Date(donation.createdAt) : new Date();
+      doc.text(`Date: ${donationDate.toLocaleDateString()}`, doc.page.width - 150, 115);
 
       // Donor details
       doc.text(`Received with thanks from:`, 30, 140);
-      doc.fillColor('#ea580c').fontSize(11).text(donor.name, 180, 140);
+      doc.fillColor('#ea580c').fontSize(11).text(donor?.name || 'Donor', 180, 140);
       
       doc.fillColor('#1f2937').fontSize(10);
-      doc.text(`Mobile: ${donor.mobile}`, 30, 160);
-      if (donor.email) {
+      doc.text(`Mobile: ${donor?.mobile || ''}`, 30, 160);
+      if (donor?.email) {
         doc.text(`Email: ${donor.email}`, doc.page.width - 220, 160);
       }
 
       doc.text(`The sum of Rupees:`, 30, 180);
-      doc.fillColor('#1f2937').fontSize(10).text(numberToWords(donation.amount), 180, 180);
+      doc.fillColor('#1f2937').fontSize(10).text(numberToWords(donation?.amount || receipt.amount || 0), 180, 180);
 
       doc.fillColor('#1f2937').fontSize(10);
       doc.text(`Purpose / वर्गणी:`, 30, 200);
-      doc.fillColor('#ea580c').text(donation.purpose, 180, 200);
+      doc.fillColor('#ea580c').text(donation?.purpose || 'Donation', 180, 200);
 
       doc.fillColor('#1f2937');
-      doc.text(`Payment Mode: ${donation.paymentMode}`, 30, 220);
+      doc.text(`Payment Mode: ${donation?.paymentMode || receipt.paymentMode || 'CASH'}`, 30, 220);
 
       // Amount Box
       doc.rect(30, 240, 150, 30).fill('#6366f1').stroke();
-      doc.fillColor('#ffffff').fontSize(12).text(`Rs. ${donation.amount}/-`, 40, 248, { width: 130, align: 'center' });
+      doc.fillColor('#ffffff').fontSize(12).text(`Rs. ${donation?.amount || receipt.amount || 0}/-`, 40, 248, { width: 130, align: 'center' });
 
       // Draw Signature if configured
       const sigBuffer = getBufferFromBase64(settings?.authorizedSignature);
@@ -127,7 +130,7 @@ export const generateReceiptPDF = (receipt, donation, donor, mandal, collectorNa
 
       // Signatures
       doc.fillColor('#4b5563').fontSize(9);
-      doc.text(`Collector: ${collectorName}`, 30, 280);
+      doc.text(`Collector: ${collectorName || 'Admin'}`, 30, 280);
 
       doc.text('Authorized Signature', doc.page.width - 150, 260);
       doc.moveTo(doc.page.width - 160, 255).lineTo(doc.page.width - 30, 255).stroke('#4b5563');

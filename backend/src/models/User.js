@@ -1,86 +1,75 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 import bcrypt from 'bcryptjs';
 
-const userSchema = new mongoose.Schema({
+const User = sequelize.define('User', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
   name: {
-    type: String,
-    required: true,
-    trim: true,
+    type: DataTypes.STRING,
+    allowNull: false,
   },
   email: {
-    type: String,
-    required: true,
+    type: DataTypes.STRING,
+    allowNull: false,
     unique: true,
-    trim: true,
-    lowercase: true,
+    validate: {
+      isEmail: true,
+    },
   },
   mobile: {
-    type: String,
-    required: true,
-    trim: true,
+    type: DataTypes.STRING,
+    allowNull: false,
   },
   password: {
-    type: String,
-    required: true,
+    type: DataTypes.STRING,
+    allowNull: false,
   },
   activeMandalId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Mandal',
+    type: DataTypes.INTEGER,
+    allowNull: true,
   },
   memberId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Member',
+    type: DataTypes.INTEGER,
+    allowNull: true,
   },
-  // Map of mandalId to User Role & Permissions
-  mandalRoles: [
-    {
-      mandalId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Mandal',
-        required: true,
-      },
-      role: {
-        type: String,
-        enum: [
-          'SUPER_ADMIN',
-          'MANDAL_ADMIN',
-          'TREASURER',
-          'ACCOUNTANT',
-          'VOLUNTEER_MANAGER',
-          'RECEIPT_OPERATOR',
-          'EVENT_MANAGER',
-          'MEMBER',
-          'VIEWER',
-        ],
-        default: 'MEMBER',
-      },
-      customPermissions: [
-        {
-          type: String,
-        },
-      ],
+  mandalRoles: {
+    type: DataTypes.JSON,
+    allowNull: true,
+  },
+  _id: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return this.id;
     },
-  ],
+  },
 }, {
+  tableName: 'users',
   timestamps: true,
+  hooks: {
+    beforeCreate: async (user) => {
+      if (!user.mandalRoles) {
+        user.mandalRoles = [];
+      }
+      if (user.password) {
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(user.password, salt);
+      }
+    },
+    beforeUpdate: async (user) => {
+      if (user.changed('password')) {
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(user.password, salt);
+      }
+    },
+  },
 });
 
-// Pre-save hook to hash password
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
-
-// Method to compare passwords
-userSchema.methods.comparePassword = async function (candidatePassword) {
+User.prototype.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-const User = mongoose.model('User', userSchema);
 export default User;

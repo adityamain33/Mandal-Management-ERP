@@ -1,46 +1,56 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const mandalSchema = new mongoose.Schema({
+const Mandal = sequelize.define('Mandal', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
   name: {
-    type: String,
-    required: true,
-    trim: true,
+    type: DataTypes.STRING,
+    allowNull: false,
   },
   registrationDetails: {
-    type: String,
-    trim: true,
+    type: DataTypes.STRING,
+    allowNull: true,
   },
   address: {
-    type: String,
-    trim: true,
+    type: DataTypes.TEXT,
+    allowNull: true,
   },
   city: {
-    type: String,
-    required: true,
-    trim: true,
+    type: DataTypes.STRING,
+    allowNull: false,
   },
   state: {
-    type: String,
-    required: true,
-    trim: true,
+    type: DataTypes.STRING,
+    allowNull: false,
   },
   configuration: {
-    receiptPrefix: {
-      type: String,
-      default: 'MS',
-    },
-    receiptStartNumber: {
-      type: Number,
-      default: 1,
-    },
-    defaultCurrency: {
-      type: String,
-      default: 'INR',
+    type: DataTypes.JSON,
+    allowNull: true,
+  },
+  _id: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return this.id;
     },
   },
 }, {
+  tableName: 'mandals',
   timestamps: true,
+  hooks: {
+    beforeCreate: (mandal) => {
+      if (!mandal.configuration) {
+        mandal.configuration = {
+          receiptPrefix: 'MS',
+          receiptStartNumber: 1,
+          defaultCurrency: 'INR',
+        };
+      }
+    },
+  },
 });
 
-const Mandal = mongoose.model('Mandal', mandalSchema);
 export default Mandal;

@@ -1,57 +1,79 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const vendorSchema = new mongoose.Schema({
+const Vendor = sequelize.define('Vendor', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
   name: {
-    type: String,
-    required: true,
-    trim: true,
+    type: DataTypes.STRING,
+    allowNull: false,
   },
   businessName: {
-    type: String,
-    trim: true,
+    type: DataTypes.STRING,
+    allowNull: true,
   },
   mobile: {
-    type: String,
-    required: true,
-    trim: true,
+    type: DataTypes.STRING,
+    allowNull: false,
   },
   email: {
-    type: String,
-    trim: true,
-    lowercase: true,
+    type: DataTypes.STRING,
+    allowNull: true,
   },
   address: {
-    type: String,
-    trim: true,
+    type: DataTypes.TEXT,
+    allowNull: true,
   },
   gstNo: {
-    type: String,
-    trim: true,
+    type: DataTypes.STRING,
+    allowNull: true,
   },
   category: {
-    type: String,
-    trim: true, // e.g. Sound, Decoration, Catering
+    type: DataTypes.STRING,
+    allowNull: true,
   },
   bankDetails: {
-    accountNo: { type: String, trim: true },
-    ifscCode: { type: String, trim: true },
-    bankName: { type: String, trim: true },
-    branchName: { type: String, trim: true },
+    type: DataTypes.JSON,
+    allowNull: true,
   },
   notes: {
-    type: String,
-    trim: true,
+    type: DataTypes.TEXT,
+    allowNull: true,
   },
   mandalId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Mandal',
-    required: true,
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+  _id: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return this.id;
+    },
   },
 }, {
+  tableName: 'vendors',
   timestamps: true,
+  hooks: {
+    beforeCreate: (vendor) => {
+      if (!vendor.bankDetails) {
+        vendor.bankDetails = {
+          accountNo: '',
+          ifscCode: '',
+          bankName: '',
+          branchName: '',
+        };
+      }
+    },
+  },
+  indexes: [
+    {
+      unique: true,
+      fields: ['mobile', 'mandalId'],
+    },
+  ],
 });
 
-vendorSchema.index({ mobile: 1, mandalId: 1 }, { unique: true });
-
-const Vendor = mongoose.model('Vendor', vendorSchema);
 export default Vendor;

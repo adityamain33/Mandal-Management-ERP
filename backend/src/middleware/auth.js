@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
+import { User } from '../models/index.js';
 import { computePermissions } from '../config/permissions.js';
 
 export const protect = async (req, res, next) => {
@@ -14,7 +14,9 @@ export const protect = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id).select('-password');
+    const user = await User.findByPk(decoded.id, {
+      attributes: { exclude: ['password'] },
+    });
     if (!user) {
       return res.status(401).json({ message: 'User not found' });
     }
@@ -26,10 +28,11 @@ export const protect = async (req, res, next) => {
     const activeMandalId = headerMandalId || user.activeMandalId;
 
     if (activeMandalId) {
-      req.mandalId = activeMandalId;
+      req.mandalId = Number(activeMandalId);
       // Get the role and customPermissions of the user for this specific mandal
-      const currentMandalRole = user.mandalRoles.find(
-        (mr) => mr.mandalId.toString() === activeMandalId.toString()
+      const mandalRoles = user.mandalRoles || [];
+      const currentMandalRole = mandalRoles.find(
+        (mr) => String(mr.mandalId) === String(activeMandalId)
       );
       req.role = currentMandalRole ? currentMandalRole.role : 'MEMBER';
       req.customPermissions = currentMandalRole?.customPermissions || [];
@@ -94,4 +97,3 @@ export const checkPermission = (...requiredPermissions) => {
     next();
   };
 };
-

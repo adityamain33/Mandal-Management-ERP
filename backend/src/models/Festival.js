@@ -1,48 +1,57 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const festivalSchema = new mongoose.Schema({
+const Festival = sequelize.define('Festival', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
   name: {
-    type: String,
-    required: true,
-    trim: true,
+    type: DataTypes.STRING,
+    allowNull: false,
   },
   year: {
-    type: Number,
-    required: true,
+    type: DataTypes.INTEGER,
+    allowNull: false,
   },
   startDate: {
-    type: Date,
-    required: true,
+    type: DataTypes.DATE,
+    allowNull: false,
   },
   endDate: {
-    type: Date,
-    required: true,
+    type: DataTypes.DATE,
+    allowNull: false,
   },
   mandalId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Mandal',
-    required: true,
+    type: DataTypes.INTEGER,
+    allowNull: false,
   },
   theme: {
-    type: String,
-    trim: true,
+    type: DataTypes.STRING,
+    allowNull: true,
   },
   budget: {
-    type: Number,
-    default: 0,
+    type: DataTypes.DOUBLE,
+    defaultValue: 0,
   },
   expectedDonation: {
-    type: Number,
-    default: 0,
+    type: DataTypes.DOUBLE,
+    defaultValue: 0,
   },
   status: {
-    type: String,
-    enum: ['UPCOMING', 'ACTIVE', 'COMPLETED'],
-    default: 'UPCOMING',
+    type: DataTypes.ENUM('UPCOMING', 'ACTIVE', 'COMPLETED'),
+    defaultValue: 'UPCOMING',
+  },
+  _id: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return this.id;
+    },
   },
 }, {
+  tableName: 'festivals',
   timestamps: true,
 });
 
-const Festival = mongoose.model('Festival', festivalSchema);
 export default Festival;

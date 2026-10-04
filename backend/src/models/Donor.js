@@ -1,36 +1,47 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const donorSchema = new mongoose.Schema({
+const Donor = sequelize.define('Donor', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
   name: {
-    type: String,
-    required: true,
-    trim: true,
+    type: DataTypes.STRING,
+    allowNull: false,
   },
   mobile: {
-    type: String,
-    required: true,
-    trim: true,
+    type: DataTypes.STRING,
+    allowNull: false,
   },
   email: {
-    type: String,
-    trim: true,
-    lowercase: true,
+    type: DataTypes.STRING,
+    allowNull: true,
   },
   address: {
-    type: String,
-    trim: true,
+    type: DataTypes.TEXT,
+    allowNull: true,
   },
   mandalId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Mandal',
-    required: true,
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+  _id: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return this.id;
+    },
   },
 }, {
+  tableName: 'donors',
   timestamps: true,
+  indexes: [
+    {
+      unique: true,
+      fields: ['mobile', 'mandalId'],
+    },
+  ],
 });
 
-// Avoid duplicate donor within same mandal
-donorSchema.index({ mobile: 1, mandalId: 1 }, { unique: true });
-
-const Donor = mongoose.model('Donor', donorSchema);
 export default Donor;

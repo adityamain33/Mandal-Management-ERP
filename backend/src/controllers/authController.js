@@ -1,9 +1,6 @@
-import User from '../models/User.js';
-import Mandal from '../models/Mandal.js';
-import Setting from '../models/Setting.js';
-import Festival from '../models/Festival.js';
-import Account from '../models/Account.js';
+import { User, Mandal, Setting, Festival, Account } from '../models/index.js';
 import jwt from 'jsonwebtoken';
+import { Op } from 'sequelize';
 import { computePermissions, ALL_PERMISSIONS } from '../config/permissions.js';
 
 const generateToken = (id) => {
@@ -35,7 +32,7 @@ export const register = async (req, res) => {
   }
 
   try {
-    const userExists = await User.findOne({ email });
+    const userExists = await User.findOne({ where: { email: email.toLowerCase().trim() } });
     if (userExists) {
       return res.status(400).json({ message: 'User already exists' });
     }
@@ -54,13 +51,13 @@ export const register = async (req, res) => {
     // 2. Create User
     const user = await User.create({
       name: adminName,
-      email,
-      mobile,
+      email: email.toLowerCase().trim(),
+      mobile: mobile.trim(),
       password,
-      activeMandalId: mandal._id,
+      activeMandalId: mandal.id,
       mandalRoles: [
         {
-          mandalId: mandal._id,
+          mandalId: mandal.id,
           role: 'MANDAL_ADMIN',
           customPermissions: ALL_PERMISSIONS,
         },
@@ -69,7 +66,7 @@ export const register = async (req, res) => {
 
     // 3. Create default settings
     await Setting.create({
-      mandalId: mandal._id,
+      mandalId: mandal.id,
       receiptPrefix: 'GM/26',
       receiptStartNumber: 1,
     });
@@ -82,7 +79,7 @@ export const register = async (req, res) => {
       year: 2026,
       startDate: today,
       endDate: dec31,
-      mandalId: mandal._id,
+      mandalId: mandal.id,
       theme: 'पारंपारिक मूर्ती व सजावट',
       budget: 100000,
       expectedDonation: 150000,
@@ -103,17 +100,18 @@ export const register = async (req, res) => {
     for (const acc of defaultAccounts) {
       await Account.create({
         ...acc,
-        mandalId: mandal._id,
+        mandalId: mandal.id,
       });
     }
 
     res.status(201).json({
-      _id: user._id,
+      _id: user.id,
+      id: user.id,
       name: user.name,
       email: user.email,
       mobile: user.mobile,
-      token: generateToken(user._id),
-      activeMandalId: mandal._id,
+      token: generateToken(user.id),
+      activeMandalId: mandal.id,
       role: 'MANDAL_ADMIN',
       permissions: ALL_PERMISSIONS,
     });
@@ -131,19 +129,24 @@ export const login = async (req, res) => {
   }
 
   try {
-    // Find user by email or mobile
+    const trimmedInput = emailOrMobile.trim();
     const user = await User.findOne({
-      $or: [{ email: emailOrMobile.toLowerCase().trim() }, { mobile: emailOrMobile.trim() }],
+      where: {
+        [Op.or]: [
+          { email: trimmedInput.toLowerCase() },
+          { mobile: trimmedInput },
+        ],
+      },
     });
 
     if (user && (await user.comparePassword(password))) {
-      // Find active mandal role
       const mandalId = user.activeMandalId;
       let role = 'MEMBER';
       let customPermissions = [];
 
+      const mandalRoles = user.mandalRoles || [];
       if (mandalId) {
-        const mr = user.mandalRoles.find((r) => r.mandalId.toString() === mandalId.toString());
+        const mr = mandalRoles.find((r) => String(r.mandalId) === String(mandalId));
         if (mr) {
           role = mr.role;
           customPermissions = mr.customPermissions || [];
@@ -153,11 +156,12 @@ export const login = async (req, res) => {
       const permissions = computePermissions(role, customPermissions);
 
       res.json({
-        _id: user._id,
+        _id: user.id,
+        id: user.id,
         name: user.name,
         email: user.email,
         mobile: user.mobile,
-        token: generateToken(user._id),
+        token: generateToken(user.id),
         activeMandalId: mandalId,
         role,
         permissions,
@@ -175,13 +179,11 @@ export const login = async (req, res) => {
 export const forgotPassword = async (req, res) => {
   const { email } = req.body;
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ where: { email: email.toLowerCase().trim() } });
     if (!user) {
       return res.status(404).json({ message: 'User not found with this email' });
     }
 
-    // In a production system, you would send a reset token via email.
-    // For this ERP application, we will return a mock success response.
     res.json({ message: 'Password reset link sent to registered email' });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
@@ -191,7 +193,6 @@ export const forgotPassword = async (req, res) => {
 export const resetPassword = async (req, res) => {
   const { token, password } = req.body;
   try {
-    // Simulated token resolution
     res.json({ message: 'Password has been reset successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
@@ -200,7 +201,9 @@ export const resetPassword = async (req, res) => {
 
 export const getProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('-password').populate('mandalRoles.mandalId');
+    const user = await User.findByPk(req.user.id, {
+      attributes: { exclude: ['password'] },
+    });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -209,10 +212,11 @@ export const getProfile = async (req, res) => {
     let currentRole = 'MEMBER';
     let customPermissions = [];
 
+    const mandalRoles = user.mandalRoles || [];
     if (mandalId) {
-      const mr = user.mandalRoles.find((r) => {
-        const id = r.mandalId?._id || r.mandalId;
-        return id && id.toString() === mandalId.toString();
+      const mr = mandalRoles.find((r) => {
+        const id = r.mandalId?._id || r.mandalId?.id || r.mandalId;
+        return id && String(id) === String(mandalId);
       });
       if (mr) {
         currentRole = mr.role;
@@ -221,8 +225,8 @@ export const getProfile = async (req, res) => {
     }
 
     const permissions = computePermissions(currentRole, customPermissions);
-
-    const userObj = user.toObject();
+    const userObj = user.toJSON();
+    userObj._id = user.id;
     userObj.role = currentRole;
     userObj.permissions = permissions;
     userObj.customPermissions = customPermissions;
@@ -243,7 +247,7 @@ export const updateMandal = async (req, res) => {
   }
 
   try {
-    const mandal = await Mandal.findById(mandalId);
+    const mandal = await Mandal.findByPk(mandalId);
     if (!mandal) {
       return res.status(404).json({ message: 'Mandal not found' });
     }

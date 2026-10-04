@@ -1,73 +1,83 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const memberSchema = new mongoose.Schema({
+const Member = sequelize.define('Member', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
   name: {
-    type: String,
-    required: true,
-    trim: true,
+    type: DataTypes.STRING,
+    allowNull: false,
   },
   mobile: {
-    type: String,
-    required: true,
-    trim: true,
+    type: DataTypes.STRING,
+    allowNull: false,
   },
   email: {
-    type: String,
-    trim: true,
-    lowercase: true,
+    type: DataTypes.STRING,
+    allowNull: true,
   },
   address: {
-    type: String,
-    trim: true,
+    type: DataTypes.TEXT,
+    allowNull: true,
   },
   dob: {
-    type: Date,
+    type: DataTypes.DATEONLY,
+    allowNull: true,
   },
   joiningDate: {
-    type: Date,
-    default: Date.now,
+    type: DataTypes.DATEONLY,
+    defaultValue: DataTypes.NOW,
   },
   role: {
-    type: String,
-    required: true,
-    enum: [
+    type: DataTypes.ENUM(
       'President',
       'Vice President',
       'Secretary',
       'Treasurer',
       'Committee Member',
       'Volunteer',
-      'Member',
-    ],
-    default: 'Member',
+      'Member'
+    ),
+    defaultValue: 'Member',
   },
   bloodGroup: {
-    type: String,
-    enum: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Unknown'],
-    default: 'Unknown',
+    type: DataTypes.ENUM('A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Unknown'),
+    defaultValue: 'Unknown',
   },
   emergencyContact: {
-    type: String,
-    trim: true,
+    type: DataTypes.STRING,
+    allowNull: true,
   },
   photo: {
-    type: String,
+    type: DataTypes.STRING,
+    allowNull: true,
   },
   status: {
-    type: String,
-    enum: ['ACTIVE', 'INACTIVE'],
-    default: 'ACTIVE',
+    type: DataTypes.ENUM('ACTIVE', 'INACTIVE'),
+    defaultValue: 'ACTIVE',
   },
   mandalId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Mandal',
-    required: true,
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+  _id: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return this.id;
+    },
   },
 }, {
+  tableName: 'members',
   timestamps: true,
+  indexes: [
+    {
+      unique: true,
+      fields: ['mobile', 'mandalId'],
+    },
+  ],
 });
 
-memberSchema.index({ mobile: 1, mandalId: 1 }, { unique: true });
-
-const Member = mongoose.model('Member', memberSchema);
 export default Member;

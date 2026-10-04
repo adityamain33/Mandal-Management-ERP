@@ -1,22 +1,28 @@
-import Vendor from '../models/Vendor.js';
-import Expense from '../models/Expense.js';
+import { Vendor, Expense } from '../models/index.js';
+import { Op } from 'sequelize';
 
 export const getVendors = async (req, res) => {
   const mandalId = req.mandalId;
   const { search } = req.query;
 
   try {
-    const query = { mandalId };
+    const where = { mandalId: Number(mandalId) };
     if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { businessName: { $regex: search, $options: 'i' } },
-        { mobile: { $regex: search } },
+      where[Op.or] = [
+        { name: { [Op.like]: `%${search}%` } },
+        { businessName: { [Op.like]: `%${search}%` } },
+        { mobile: { [Op.like]: `%${search}%` } },
       ];
     }
 
-    const vendors = await Vendor.find(query).sort({ name: 1 });
-    res.json(vendors);
+    const vendors = await Vendor.findAll({ where, order: [['name', 'ASC']] });
+    const formatted = vendors.map((v) => {
+      const obj = v.toJSON();
+      obj._id = v.id;
+      return obj;
+    });
+
+    res.json(formatted);
   } catch (error) {
     console.error('Get vendors error:', error);
     res.status(500).json({ message: 'Server error retrieving vendors' });
@@ -32,25 +38,27 @@ export const createVendor = async (req, res) => {
   }
 
   try {
-    const existingVendor = await Vendor.findOne({ mobile, mandalId });
+    const existingVendor = await Vendor.findOne({ where: { mobile: mobile.trim(), mandalId: Number(mandalId) } });
     if (existingVendor) {
       return res.status(400).json({ message: 'Vendor with this mobile number already exists' });
     }
 
     const vendor = await Vendor.create({
-      name,
-      businessName,
-      mobile,
-      email,
-      address,
-      gstNo,
-      category,
-      bankDetails,
-      notes,
-      mandalId,
+      name: name.trim(),
+      businessName: businessName ? businessName.trim() : null,
+      mobile: mobile.trim(),
+      email: email ? email.trim() : null,
+      address: address ? address.trim() : null,
+      gstNo: gstNo ? gstNo.trim() : null,
+      category: category ? category.trim() : null,
+      bankDetails: bankDetails || {},
+      notes: notes || null,
+      mandalId: Number(mandalId),
     });
 
-    res.status(201).json(vendor);
+    const resObj = vendor.toJSON();
+    resObj._id = vendor.id;
+    res.status(201).json(resObj);
   } catch (error) {
     console.error('Create vendor error:', error);
     res.status(500).json({ message: 'Server error creating vendor' });
@@ -62,19 +70,31 @@ export const getVendorProfile = async (req, res) => {
   const mandalId = req.mandalId;
 
   try {
-    const vendor = await Vendor.findOne({ _id: id, mandalId });
+    const vendor = await Vendor.findOne({ where: { id, mandalId: Number(mandalId) } });
     if (!vendor) {
       return res.status(404).json({ message: 'Vendor not found' });
     }
 
-    const expenses = await Expense.find({ vendorId: id, mandalId }).sort({ date: -1 });
+    const rawExpenses = await Expense.findAll({
+      where: { vendorId: id, mandalId: Number(mandalId) },
+      order: [['date', 'DESC']],
+    });
 
-    const totalPurchases = expenses.reduce((sum, e) => (e.status !== 'REJECTED' ? sum + e.amount : sum), 0);
-    const totalPaid = expenses.reduce((sum, e) => (e.status === 'PAID' ? sum + e.amount : sum), 0);
+    const expenses = rawExpenses.map((e) => {
+      const obj = e.toJSON();
+      obj._id = e.id;
+      return obj;
+    });
+
+    const totalPurchases = expenses.reduce((sum, e) => (e.status !== 'REJECTED' ? sum + Number(e.amount) : sum), 0);
+    const totalPaid = expenses.reduce((sum, e) => (e.status === 'PAID' ? sum + Number(e.amount) : sum), 0);
     const pendingAmount = totalPurchases - totalPaid;
 
+    const vObj = vendor.toJSON();
+    vObj._id = vendor.id;
+
     res.json({
-      vendor,
+      vendor: vObj,
       stats: {
         totalPurchases,
         totalPaid,
@@ -94,23 +114,25 @@ export const updateVendor = async (req, res) => {
   const { name, businessName, mobile, email, address, gstNo, category, bankDetails, notes } = req.body;
 
   try {
-    const vendor = await Vendor.findOne({ _id: id, mandalId });
+    const vendor = await Vendor.findOne({ where: { id, mandalId: Number(mandalId) } });
     if (!vendor) {
       return res.status(404).json({ message: 'Vendor not found' });
     }
 
-    vendor.name = name || vendor.name;
-    vendor.businessName = businessName !== undefined ? businessName : vendor.businessName;
-    vendor.mobile = mobile || vendor.mobile;
-    vendor.email = email !== undefined ? email : vendor.email;
-    vendor.address = address !== undefined ? address : vendor.address;
-    vendor.gstNo = gstNo !== undefined ? gstNo : vendor.gstNo;
-    vendor.category = category !== undefined ? category : vendor.category;
-    vendor.bankDetails = bankDetails !== undefined ? bankDetails : vendor.bankDetails;
-    vendor.notes = notes !== undefined ? notes : vendor.notes;
+    if (name) vendor.name = name.trim();
+    if (businessName !== undefined) vendor.businessName = businessName;
+    if (mobile) vendor.mobile = mobile.trim();
+    if (email !== undefined) vendor.email = email ? email.trim() : null;
+    if (address !== undefined) vendor.address = address ? address.trim() : null;
+    if (gstNo !== undefined) vendor.gstNo = gstNo;
+    if (category !== undefined) vendor.category = category;
+    if (bankDetails !== undefined) vendor.bankDetails = bankDetails;
+    if (notes !== undefined) vendor.notes = notes;
 
     await vendor.save();
-    res.json(vendor);
+    const resObj = vendor.toJSON();
+    resObj._id = vendor.id;
+    res.json(resObj);
   } catch (error) {
     console.error('Update vendor error:', error);
     res.status(500).json({ message: 'Server error updating vendor' });

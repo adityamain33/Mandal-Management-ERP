@@ -1,25 +1,26 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const volunteerSchema = new mongoose.Schema({
-  memberId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Member',
-    required: true,
+const Volunteer = sequelize.define('Volunteer', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
   },
-  skills: [
-    {
-      type: String,
-      trim: true,
-    },
-  ],
+  memberId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+  skills: {
+    type: DataTypes.JSON,
+    allowNull: true,
+  },
   availability: {
-    type: String,
-    trim: true,
+    type: DataTypes.STRING,
+    allowNull: true,
   },
   department: {
-    type: String,
-    required: true,
-    enum: [
+    type: DataTypes.ENUM(
       'Decoration',
       'Security',
       'Prasad',
@@ -29,22 +30,34 @@ const volunteerSchema = new mongoose.Schema({
       'Finance',
       'Digital',
       'Cleaning',
-      'Management',
-    ],
-    default: 'Management',
+      'Management'
+    ),
+    defaultValue: 'Management',
   },
   hoursWorked: {
-    type: Number,
-    default: 0,
+    type: DataTypes.DOUBLE,
+    defaultValue: 0,
   },
   mandalId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Mandal',
-    required: true,
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+  _id: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return this.id;
+    },
   },
 }, {
+  tableName: 'volunteers',
   timestamps: true,
+  hooks: {
+    beforeCreate: (vol) => {
+      if (!vol.skills) {
+        vol.skills = [];
+      }
+    },
+  },
 });
 
-const Volunteer = mongoose.model('Volunteer', volunteerSchema);
 export default Volunteer;

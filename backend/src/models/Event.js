@@ -1,62 +1,76 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const eventSchema = new mongoose.Schema({
+const Event = sequelize.define('Event', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
   name: {
-    type: String,
-    required: true,
-    trim: true,
+    type: DataTypes.STRING,
+    allowNull: false,
   },
   date: {
-    type: Date,
-    required: true,
+    type: DataTypes.DATE,
+    allowNull: false,
   },
   startTime: {
-    type: String, // format HH:MM
-    required: true,
+    type: DataTypes.STRING,
+    allowNull: false,
   },
   endTime: {
-    type: String, // format HH:MM
+    type: DataTypes.STRING,
+    allowNull: true,
   },
   location: {
-    type: String,
-    trim: true,
+    type: DataTypes.TEXT,
+    allowNull: true,
   },
   description: {
-    type: String,
-    trim: true,
+    type: DataTypes.TEXT,
+    allowNull: true,
   },
   budget: {
-    type: Number,
-    default: 0,
+    type: DataTypes.DOUBLE,
+    defaultValue: 0,
   },
   coordinatorId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Member',
+    type: DataTypes.INTEGER,
+    allowNull: true,
   },
-  volunteers: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Volunteer',
-    },
-  ],
+  volunteers: {
+    type: DataTypes.JSON,
+    allowNull: true,
+  },
   status: {
-    type: String,
-    enum: ['SCHEDULED', 'ONGOING', 'COMPLETED', 'CANCELLED'],
-    default: 'SCHEDULED',
+    type: DataTypes.ENUM('SCHEDULED', 'ONGOING', 'COMPLETED', 'CANCELLED'),
+    defaultValue: 'SCHEDULED',
   },
   mandalId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Mandal',
-    required: true,
+    type: DataTypes.INTEGER,
+    allowNull: false,
   },
   festivalId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Festival',
-    required: true,
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+  _id: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return this.id;
+    },
   },
 }, {
+  tableName: 'events',
   timestamps: true,
+  hooks: {
+    beforeCreate: (event) => {
+      if (!event.volunteers) {
+        event.volunteers = [];
+      }
+    },
+  },
 });
 
-const Event = mongoose.model('Event', eventSchema);
 export default Event;

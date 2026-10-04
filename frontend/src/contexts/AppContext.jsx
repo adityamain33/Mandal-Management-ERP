@@ -61,7 +61,10 @@ export const AppProvider = ({ children }) => {
       }
 
       if (currentMId) {
-        const currentMandal = mappedMandals.find((m) => m._id.toString() === currentMId.toString());
+        const currentMandal = mappedMandals.find((m) => {
+          const mId = m._id || m.id;
+          return mId && mId.toString() === currentMId.toString();
+        });
         setActiveMandalName(currentMandal ? currentMandal.name : 'श्री गणेश मित्र मंडळ');
 
         // Set header scoped mandal
@@ -73,10 +76,10 @@ export const AppProvider = ({ children }) => {
         
         const activeFest = festRes.data.find((f) => f.status === 'ACTIVE');
         if (activeFest) {
-          setActiveFestivalId(activeFest._id);
+          setActiveFestivalId(activeFest._id || activeFest.id);
           setActiveFestivalYear(`${activeFest.name} (${activeFest.year})`);
         } else if (festRes.data.length > 0) {
-          setActiveFestivalId(festRes.data[0]._id);
+          setActiveFestivalId(festRes.data[0]._id || festRes.data[0].id);
           setActiveFestivalYear(`${festRes.data[0].name} (${festRes.data[0].year})`);
         }
 

@@ -1,10 +1,5 @@
-import Donation from '../models/Donation.js';
-import Expense from '../models/Expense.js';
-import Donor from '../models/Donor.js';
-import Receipt from '../models/Receipt.js';
-import Member from '../models/Member.js';
-import Event from '../models/Event.js';
-import mongoose from 'mongoose';
+import { Donation, Expense, Donor, Receipt, Member, Event, sequelize } from '../models/index.js';
+import { Op } from 'sequelize';
 
 export const getDashboardStats = async (req, res) => {
   const mandalId = req.mandalId;
@@ -12,71 +7,94 @@ export const getDashboardStats = async (req, res) => {
     return res.status(400).json({ message: 'No active Mandal selected' });
   }
 
-  const mId = new mongoose.Types.ObjectId(mandalId);
+  const mId = Number(mandalId);
 
   try {
     // 1. Total Collection
-    const totalDonationAgg = await Donation.aggregate([
-      { $match: { mandalId: mId, status: 'PAID' } },
-      { $group: { _id: null, total: { $sum: '$amount' } } },
-    ]);
-    const totalDonations = totalDonationAgg.length > 0 ? totalDonationAgg[0].total : 0;
+    const totalDonations = await Donation.sum('amount', {
+      where: { mandalId: mId, status: 'PAID' },
+    }) || 0;
 
     // 2. Total Expenses
-    const totalExpenseAgg = await Expense.aggregate([
-      { $match: { mandalId: mId, status: 'PAID' } },
-      { $group: { _id: null, total: { $sum: '$amount' } } },
-    ]);
-    const totalExpenses = totalExpenseAgg.length > 0 ? totalExpenseAgg[0].total : 0;
+    const totalExpenses = await Expense.sum('amount', {
+      where: { mandalId: mId, status: 'PAID' },
+    }) || 0;
 
     // 3. Today's Collection
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
-    const todayCollectionAgg = await Donation.aggregate([
-      { $match: { mandalId: mId, status: 'PAID', createdAt: { $gte: startOfToday } } },
-      { $group: { _id: null, total: { $sum: '$amount' } } },
-    ]);
-    const todayCollection = todayCollectionAgg.length > 0 ? todayCollectionAgg[0].total : 0;
+    const todayCollection = await Donation.sum('amount', {
+      where: {
+        mandalId: mId,
+        status: 'PAID',
+        createdAt: { [Op.gte]: startOfToday },
+      },
+    }) || 0;
 
     // 4. Monthly Collection
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
-    const monthlyCollectionAgg = await Donation.aggregate([
-      { $match: { mandalId: mId, status: 'PAID', createdAt: { $gte: startOfMonth } } },
-      { $group: { _id: null, total: { $sum: '$amount' } } },
-    ]);
-    const monthlyCollection = monthlyCollectionAgg.length > 0 ? monthlyCollectionAgg[0].total : 0;
+    const monthlyCollection = await Donation.sum('amount', {
+      where: {
+        mandalId: mId,
+        status: 'PAID',
+        createdAt: { [Op.gte]: startOfMonth },
+      },
+    }) || 0;
 
     // 5. Total Donors Count
-    const donorsCount = await Donor.countDocuments({ mandalId });
+    const donorsCount = await Donor.count({ where: { mandalId: mId } });
 
     // 6. Total Receipts Count
-    const receiptsCount = await Receipt.countDocuments({ mandalId, status: 'ACTIVE' });
+    const receiptsCount = await Receipt.count({ where: { mandalId: mId, status: 'ACTIVE' } });
 
     // 7. Payment Mode Distribution
-    const paymentModeData = await Donation.aggregate([
-      { $match: { mandalId: mId, status: 'PAID' } },
-      { $group: { _id: '$paymentMode', value: { $sum: '$amount' } } },
-      { $project: { name: '$_id', value: 1, _id: 0 } },
-    ]);
+    const rawPaymentModes = await Donation.findAll({
+      attributes: [
+        ['paymentMode', 'name'],
+        [sequelize.fn('SUM', sequelize.col('amount')), 'value'],
+      ],
+      where: { mandalId: mId, status: 'PAID' },
+      group: ['paymentMode'],
+      raw: true,
+    });
+    const paymentModeData = rawPaymentModes.map((p) => ({
+      name: p.name,
+      value: Number(p.value || 0),
+    }));
 
     // 8. Purpose Distribution
-    const purposeData = await Donation.aggregate([
-      { $match: { mandalId: mId, status: 'PAID' } },
-      { $group: { _id: '$purpose', value: { $sum: '$amount' } } },
-      { $project: { name: '$_id', value: 1, _id: 0 } },
-    ]);
+    const rawPurposes = await Donation.findAll({
+      attributes: [
+        ['purpose', 'name'],
+        [sequelize.fn('SUM', sequelize.col('amount')), 'value'],
+      ],
+      where: { mandalId: mId, status: 'PAID' },
+      group: ['purpose'],
+      raw: true,
+    });
+    const purposeData = rawPurposes.map((p) => ({
+      name: p.name,
+      value: Number(p.value || 0),
+    }));
 
     // 9. Expense Category Distribution
-    const expenseCategoryData = await Expense.aggregate([
-      { $match: { mandalId: mId, status: 'PAID' } },
-      { $group: { _id: '$category', value: { $sum: '$amount' } } },
-      { $project: { name: '$_id', value: 1, _id: 0 } },
-    ]);
+    const rawCategories = await Expense.findAll({
+      attributes: [
+        ['category', 'name'],
+        [sequelize.fn('SUM', sequelize.col('amount')), 'value'],
+      ],
+      where: { mandalId: mId, status: 'PAID' },
+      group: ['category'],
+      raw: true,
+    });
+    const expenseCategoryData = rawCategories.map((c) => ({
+      name: c.name,
+      value: Number(c.value || 0),
+    }));
 
     // 10. Monthly Trends (Income vs Expense)
-    // Get last 6 months
     const trendData = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date();
@@ -89,44 +107,73 @@ export const getDashboardStats = async (req, res) => {
       const monthName = d.toLocaleString('en-US', { month: 'short' });
       const monthNameMr = d.toLocaleString('mr-IN', { month: 'short' });
 
-      const incAgg = await Donation.aggregate([
-        { $match: { mandalId: mId, status: 'PAID', createdAt: { $gte: monthStart, $lte: monthEnd } } },
-        { $group: { _id: null, total: { $sum: '$amount' } } },
-      ]);
-      const expAgg = await Expense.aggregate([
-        { $match: { mandalId: mId, status: 'PAID', date: { $gte: monthStart, $lte: monthEnd } } },
-        { $group: { _id: null, total: { $sum: '$amount' } } },
-      ]);
+      const inc = await Donation.sum('amount', {
+        where: {
+          mandalId: mId,
+          status: 'PAID',
+          createdAt: { [Op.between]: [monthStart, monthEnd] },
+        },
+      }) || 0;
+
+      const exp = await Expense.sum('amount', {
+        where: {
+          mandalId: mId,
+          status: 'PAID',
+          date: { [Op.between]: [monthStart, monthEnd] },
+        },
+      }) || 0;
 
       trendData.push({
         month: monthName,
         monthMarathi: monthNameMr,
-        जमा: incAgg.length > 0 ? incAgg[0].total : 0,
-        खर्च: expAgg.length > 0 ? expAgg[0].total : 0,
+        जमा: Number(inc),
+        खर्च: Number(exp),
       });
     }
 
     // 11. Recent Activities
-    const recentDonations = await Donation.find({ mandalId, status: 'PAID' })
-      .populate('donorId', 'name')
-      .sort({ createdAt: -1 })
-      .limit(5);
+    const rawRecentDonations = await Donation.findAll({
+      where: { mandalId: mId, status: 'PAID' },
+      include: [{ model: Donor, as: 'donor', attributes: ['id', 'name', 'mobile'] }],
+      order: [['createdAt', 'DESC']],
+      limit: 5,
+    });
+    const recentDonations = rawRecentDonations.map((d) => {
+      const obj = d.toJSON();
+      obj._id = d.id;
+      obj.donorId = d.donor ? { ...d.donor.toJSON(), _id: d.donor.id } : d.donorId;
+      return obj;
+    });
 
-    const recentExpenses = await Expense.find({ mandalId, status: 'PAID' })
-      .sort({ date: -1 })
-      .limit(5);
+    const rawRecentExpenses = await Expense.findAll({
+      where: { mandalId: mId, status: 'PAID' },
+      order: [['date', 'DESC']],
+      limit: 5,
+    });
+    const recentExpenses = rawRecentExpenses.map((e) => {
+      const obj = e.toJSON();
+      obj._id = e.id;
+      return obj;
+    });
 
-    const upcomingEvents = await Event.find({ mandalId, status: 'SCHEDULED' })
-      .sort({ date: 1 })
-      .limit(5);
+    const rawUpcomingEvents = await Event.findAll({
+      where: { mandalId: mId, status: 'SCHEDULED' },
+      order: [['date', 'ASC']],
+      limit: 5,
+    });
+    const upcomingEvents = rawUpcomingEvents.map((e) => {
+      const obj = e.toJSON();
+      obj._id = e.id;
+      return obj;
+    });
 
     res.json({
       summary: {
-        totalDonations,
-        totalExpenses,
-        balance: totalDonations - totalExpenses,
-        todayCollection,
-        monthlyCollection,
+        totalDonations: Number(totalDonations),
+        totalExpenses: Number(totalExpenses),
+        balance: Number(totalDonations - totalExpenses),
+        todayCollection: Number(todayCollection),
+        monthlyCollection: Number(monthlyCollection),
         donorsCount,
         receiptsCount,
       },

@@ -1,41 +1,49 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const volunteerTaskSchema = new mongoose.Schema({
+const VolunteerTask = sequelize.define('VolunteerTask', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
   title: {
-    type: String,
-    required: true,
-    trim: true,
+    type: DataTypes.STRING,
+    allowNull: false,
   },
   description: {
-    type: String,
-    trim: true,
+    type: DataTypes.TEXT,
+    allowNull: true,
   },
   assignedTo: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Volunteer',
-    required: true,
+    type: DataTypes.INTEGER,
+    allowNull: false,
   },
   status: {
-    type: String,
-    enum: ['PENDING', 'IN_PROGRESS', 'COMPLETED'],
-    default: 'PENDING',
+    type: DataTypes.ENUM('PENDING', 'IN_PROGRESS', 'COMPLETED'),
+    defaultValue: 'PENDING',
   },
   dueDate: {
-    type: Date,
+    type: DataTypes.DATE,
+    allowNull: true,
   },
   mandalId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Mandal',
-    required: true,
+    type: DataTypes.INTEGER,
+    allowNull: false,
   },
   festivalId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Festival',
-    required: true,
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+  _id: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return this.id;
+    },
   },
 }, {
+  tableName: 'volunteer_tasks',
   timestamps: true,
 });
 
-const VolunteerTask = mongoose.model('VolunteerTask', volunteerTaskSchema);
 export default VolunteerTask;

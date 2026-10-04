@@ -1,18 +1,15 @@
-import Donation from '../models/Donation.js';
-import Receipt from '../models/Receipt.js';
-import Expense from '../models/Expense.js';
-import Donor from '../models/Donor.js';
-import mongoose from 'mongoose';
+import { Donation, Receipt, Expense, Donor, sequelize } from '../models/index.js';
+import { Op } from 'sequelize';
 
 /**
  * Process natural language query and return matching insights.
  * @param {string} query - The query text from user
- * @param {string} mandalId - Active Mandal ID
+ * @param {number|string} mandalId - Active Mandal ID
  * @returns {Promise<string>} - Answer in Marathi or English
  */
 export const getMandalInsights = async (query, mandalId) => {
-  const normalizedQuery = query.toLowerCase().trim();
-  const mId = new mongoose.Types.ObjectId(mandalId);
+  const normalizedQuery = (query || '').toLowerCase().trim();
+  const mId = Number(mandalId);
 
   try {
     // 1. Total donation this month (या महिन्यातील एकूण वर्गणी किती आहे?)
@@ -26,13 +23,15 @@ export const getMandalInsights = async (query, mandalId) => {
         startOfMonth.setDate(1);
         startOfMonth.setHours(0, 0, 0, 0);
 
-        const result = await Donation.aggregate([
-          { $match: { mandalId: mId, status: 'PAID', createdAt: { $gte: startOfMonth } } },
-          { $group: { _id: null, total: { $sum: '$amount' } } }
-        ]);
+        const total = await Donation.sum('amount', {
+          where: {
+            mandalId: mId,
+            status: 'PAID',
+            createdAt: { [Op.gte]: startOfMonth },
+          },
+        }) || 0;
 
-        const total = result.length > 0 ? result[0].total : 0;
-        return `या महिन्यातील एकूण वर्गणी (Total Collection this month) ₹${total.toLocaleString('en-IN')} आहे.`;
+        return `या महिन्यातील एकूण वर्गणी (Total Collection this month) ₹${Number(total).toLocaleString('en-IN')} आहे.`;
       }
     }
 
@@ -47,17 +46,19 @@ export const getMandalInsights = async (query, mandalId) => {
       startOfYear.setDate(1);
       startOfYear.setHours(0, 0, 0, 0);
 
-      const result = await Donation.aggregate([
-        { $match: { mandalId: mId, status: 'PAID', createdAt: { $gte: startOfYear } } },
-        { $group: { _id: '$donorId', total: { $sum: '$amount' } } },
-        { $sort: { total: -1 } },
-        { $limit: 1 }
-      ]);
+      const topDonation = await Donation.findOne({
+        where: {
+          mandalId: mId,
+          status: 'PAID',
+          createdAt: { [Op.gte]: startOfYear },
+        },
+        include: [{ model: Donor, as: 'donor' }],
+        order: [['amount', 'DESC']],
+      });
 
-      if (result.length > 0) {
-        const donor = await Donor.findById(result[0]._id);
-        const name = donor ? donor.name : 'Unknown';
-        return `या वर्षी सर्वात जास्त देणगी ${name} यांनी ₹${result[0].total.toLocaleString('en-IN')} दिली आहे.`;
+      if (topDonation) {
+        const name = topDonation.donor ? topDonation.donor.name : 'Unknown';
+        return `या वर्षी सर्वात जास्त देणगी ${name} यांनी ₹${Number(topDonation.amount).toLocaleString('en-IN')} दिली आहे.`;
       }
       return 'या वर्षी अजून कोणतीही देणगी मिळालेली नाही.';
     }
@@ -72,19 +73,23 @@ export const getMandalInsights = async (query, mandalId) => {
         const startOfToday = new Date();
         startOfToday.setHours(0, 0, 0, 0);
 
-        const count = await Receipt.countDocuments({
-          mandalId: mId,
-          createdAt: { $gte: startOfToday },
-          status: 'ACTIVE'
+        const count = await Receipt.count({
+          where: {
+            mandalId: mId,
+            createdAt: { [Op.gte]: startOfToday },
+            status: 'ACTIVE',
+          },
         });
 
-        const sumResult = await Receipt.aggregate([
-          { $match: { mandalId: mId, createdAt: { $gte: startOfToday }, status: 'ACTIVE' } },
-          { $group: { _id: null, total: { $sum: '$amount' } } }
-        ]);
-        const totalAmount = sumResult.length > 0 ? sumResult[0].total : 0;
+        const totalAmount = await Receipt.sum('amount', {
+          where: {
+            mandalId: mId,
+            createdAt: { [Op.gte]: startOfToday },
+            status: 'ACTIVE',
+          },
+        }) || 0;
 
-        return `आज एकूण ${count} पावत्या (Receipts) तयार झाल्या आहेत. एकूण जमा: ₹${totalAmount.toLocaleString('en-IN')}.`;
+        return `आज एकूण ${count} पावत्या (Receipts) तयार झाल्या आहेत. एकूण जमा: ₹${Number(totalAmount).toLocaleString('en-IN')}.`;
       }
     }
 
@@ -94,15 +99,20 @@ export const getMandalInsights = async (query, mandalId) => {
       normalizedQuery.includes('highest expense') || 
       normalizedQuery.includes('खर्च category')
     ) {
-      const result = await Expense.aggregate([
-        { $match: { mandalId: mId, status: 'PAID' } },
-        { $group: { _id: '$category', total: { $sum: '$amount' } } },
-        { $sort: { total: -1 } },
-        { $limit: 1 }
-      ]);
+      const result = await Expense.findAll({
+        attributes: [
+          'category',
+          [sequelize.fn('SUM', sequelize.col('amount')), 'total'],
+        ],
+        where: { mandalId: mId, status: 'PAID' },
+        group: ['category'],
+        order: [[sequelize.literal('total'), 'DESC']],
+        limit: 1,
+        raw: true,
+      });
 
       if (result.length > 0) {
-        return `सर्वात जास्त खर्च '${result[0]._id}' या श्रेणीमध्ये ₹${result[0].total.toLocaleString('en-IN')} इतका झाला आहे.`;
+        return `सर्वात जास्त खर्च '${result[0].category}' या श्रेणीमध्ये ₹${Number(result[0].total).toLocaleString('en-IN')} इतका झाला आहे.`;
       }
       return 'खर्चाचा कोणताही तपशील उपलब्ध नाही.';
     }
@@ -114,23 +124,26 @@ export const getMandalInsights = async (query, mandalId) => {
       normalizedQuery.includes('मागील महिन्यापेक्षा')
     ) {
       const now = new Date();
-      
       const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+      const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
 
-      const currentMonthResult = await Expense.aggregate([
-        { $match: { mandalId: mId, status: 'PAID', date: { $gte: startOfCurrentMonth } } },
-        { $group: { _id: null, total: { $sum: '$amount' } } }
-      ]);
+      const currentTotal = await Expense.sum('amount', {
+        where: {
+          mandalId: mId,
+          status: 'PAID',
+          date: { [Op.gte]: startOfCurrentMonth },
+        },
+      }) || 0;
 
-      const lastMonthResult = await Expense.aggregate([
-        { $match: { mandalId: mId, status: 'PAID', date: { $gte: startOfLastMonth, $lte: endOfLastMonth } } },
-        { $group: { _id: null, total: { $sum: '$amount' } } }
-      ]);
+      const lastTotal = await Expense.sum('amount', {
+        where: {
+          mandalId: mId,
+          status: 'PAID',
+          date: { [Op.between]: [startOfLastMonth, endOfLastMonth] },
+        },
+      }) || 0;
 
-      const currentTotal = currentMonthResult.length > 0 ? currentMonthResult[0].total : 0;
-      const lastTotal = lastMonthResult.length > 0 ? lastMonthResult[0].total : 0;
       const diff = currentTotal - lastTotal;
 
       if (diff > 0) {

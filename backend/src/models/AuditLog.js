@@ -1,40 +1,53 @@
-import mongoose from 'mongoose';
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../config/db.js';
 
-const auditLogSchema = new mongoose.Schema({
+const AuditLog = sequelize.define('AuditLog', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
   userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
+    type: DataTypes.INTEGER,
+    allowNull: false,
   },
   action: {
-    type: String,
-    required: true,
+    type: DataTypes.STRING,
+    allowNull: false,
   },
   module: {
-    type: String,
-    required: true,
+    type: DataTypes.STRING,
+    allowNull: false,
   },
   description: {
-    type: String,
-    required: true,
+    type: DataTypes.TEXT,
+    allowNull: false,
   },
   oldValues: {
-    type: mongoose.Schema.Types.Mixed,
+    type: DataTypes.JSON,
+    allowNull: true,
   },
   newValues: {
-    type: mongoose.Schema.Types.Mixed,
+    type: DataTypes.JSON,
+    allowNull: true,
   },
   ipAddress: {
-    type: String,
+    type: DataTypes.STRING,
+    allowNull: true,
   },
   mandalId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Mandal',
-    required: true,
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+  _id: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return this.id;
+    },
   },
 }, {
+  tableName: 'audit_logs',
   timestamps: true,
 });
 
-const AuditLog = mongoose.model('AuditLog', auditLogSchema);
 export default AuditLog;
