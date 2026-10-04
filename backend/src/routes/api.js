@@ -19,6 +19,7 @@ import { getProfitLossReport, exportDonationsReport, exportReceiptsReport, expor
 import { getAuditLogs } from '../controllers/auditLogController.js';
 import { getNotifications, markNotificationRead } from '../controllers/notificationController.js';
 import { getSettings, updateSettings } from '../controllers/settingController.js';
+import { getAartis, createAarti, aartiUploadMiddleware, deleteAarti } from '../controllers/aartiController.js';
 import { getMandalInsights } from '../services/aiService.js';
 
 const router = express.Router();
@@ -120,6 +121,11 @@ router.put('/notifications/:id/read', protect, markNotificationRead);
 // --- Settings Routes ---
 router.get('/settings', protect, checkPermission('settings:view'), getSettings);
 router.put('/settings', protect, checkPermission('settings:manage'), updateSettings);
+
+// --- Aarti & Bhajan PDF Routes ---
+router.get('/aartis', protect, getAartis);
+router.post('/aartis', protect, aartiUploadMiddleware, createAarti);
+router.delete('/aartis/:id', protect, deleteAarti);
 
 // --- AI Assistant Route ---
 router.post('/ai/ask', protect, async (req, res) => {

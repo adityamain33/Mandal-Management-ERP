@@ -24,6 +24,7 @@ import Events from './pages/Events.jsx';
 import Reports from './pages/Reports.jsx';
 import AuditLogs from './pages/AuditLogs.jsx';
 import Settings from './pages/Settings.jsx';
+import AartiBhajan from './pages/AartiBhajan.jsx';
 
 // Private Route Guard Component
 const PrivateRoute = ({ children }) => {
@@ -117,6 +118,7 @@ function App() {
                   <Route path="/events" element={<PermissionRoute permission="events:view"><Events /></PermissionRoute>} />
                   <Route path="/reports" element={<PermissionRoute permission="reports:view"><Reports /></PermissionRoute>} />
                   <Route path="/audit-logs" element={<PermissionRoute permission="audit_logs:view"><AuditLogs /></PermissionRoute>} />
+                  <Route path="/aarti" element={<AartiBhajan />} />
                   <Route path="/settings" element={<PermissionRoute permission="settings:view"><Settings /></PermissionRoute>} />
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />
                 </Routes>

@@ -23,6 +23,7 @@ import {
   ChevronRight,
   Plus,
   Activity,
+  Flame,
 } from 'lucide-react';
 
 import { ROLE_LABELS } from '../utils/permissions.js';
@@ -70,6 +71,7 @@ const DashboardLayout = ({ children }) => {
     { name: t('sidebar.events'), path: '/events', icon: Calendar, permission: 'events:view' },
     { name: t('sidebar.reports'), path: '/reports', icon: FileBarChart2, permission: 'reports:view' },
     { name: t('sidebar.auditLogs'), path: '/audit-logs', icon: ClipboardList, permission: 'audit_logs:view' },
+    { name: 'आरती व भजने (Aarti)', path: '/aarti', icon: Flame },
     { name: t('sidebar.settings'), path: '/settings', icon: SettingsIcon, permission: 'settings:view' },
   ];
 
@@ -401,6 +403,16 @@ const DashboardLayout = ({ children }) => {
                 </>
               )}
             </div>
+
+            {/* Aarti & Bhajan Quick Link */}
+            <Link
+              to="/aarti"
+              className="flex items-center justify-center gap-1.5 border border-amber-200 text-amber-800 bg-amber-50 hover:bg-amber-100 p-2 sm:px-3 sm:py-2 rounded-lg text-xs font-bold shadow-xs active:scale-95 duration-150 transition"
+              title="आरती व भजन संग्रह"
+            >
+              <Flame size={14} className="text-orange-600" />
+              <span className="hidden sm:inline">आरती संग्रह</span>
+            </Link>
 
             {/* AI Toggle Button */}
             <button

@@ -16,6 +16,8 @@ import {
   Bar,
   Legend,
 } from 'recharts';
+import { Link } from 'react-router-dom';
+import { aartiPdfBooks } from '../data/aartiBhajanData.js';
 import {
   TrendingUp,
   TrendingDown,
@@ -27,6 +29,10 @@ import {
   ArrowDownRight,
   Wallet,
   IndianRupee,
+  Flame,
+  BookOpen,
+  Sparkles,
+  ChevronRight,
 } from 'lucide-react';
 
 const COLORS = ['#6366f1', '#ea580c', '#10b981', '#f59e0b', '#ec4899', '#3b82f6'];
@@ -319,6 +325,58 @@ const Dashboard = () => {
           </div>
         </div>
 
+      </div>
+
+      {/* Daily Aarti & Bhajan PDF Banner Card */}
+      <div className="rounded-3xl border border-amber-200/80 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-red-500/10 p-6 sm:p-8 relative overflow-hidden shadow-xs">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 rounded-full bg-orange-100 px-3 py-1 text-xs font-bold text-orange-800">
+              <Flame size={14} className="text-orange-600 animate-pulse" />
+              <span>पवित्र आरती व भजन PDF संग्रह / Aarti & Bhajan PDF Books</span>
+            </div>
+            <h3 className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight">
+              आरती व भजने PDF संग्रह (Aarti Sangrah)
+            </h3>
+            <p className="text-slate-600 text-xs sm:text-sm max-w-2xl leading-relaxed font-medium">
+              गणेशोत्सव, नवरात्र देवी आरती, विठ्ठल भजन, दत्त व शंकर आरती आणि पसायदान यांची अधिकृत PDF पुस्तके थेट स्क्रीनवर वाचण्यासाठी किंवा मंडळाची स्वतःची PDF अपलोड करण्यासाठी उपलब्ध आहेत.
+            </p>
+          </div>
+
+          <Link
+            to="/aarti"
+            className="flex items-center gap-2 rounded-2xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs sm:text-sm px-6 py-3.5 shadow-md shadow-orange-600/20 active:scale-95 transition shrink-0"
+          >
+            <span>🪔 संपूर्ण PDF संग्रह उघडा</span>
+            <ChevronRight size={16} />
+          </Link>
+        </div>
+
+        {/* Quick Preview PDF Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+          {aartiPdfBooks.slice(0, 4).map((book) => (
+            <Link
+              key={book.id}
+              to="/aarti"
+              className="rounded-2xl bg-white/90 backdrop-blur-xs p-4 border border-amber-200/60 hover:border-orange-300 hover:shadow-md transition group text-left block"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-50 text-orange-700">
+                  {book.categoryLabel}
+                </span>
+                <span className="text-[10px] font-bold text-orange-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                  📄 {book.pagesCount} पाने
+                </span>
+              </div>
+              <h4 className="font-bold text-xs sm:text-sm text-slate-800 line-clamp-1 group-hover:text-orange-700 transition">
+                {book.title}
+              </h4>
+              <p className="text-[11px] text-slate-500 line-clamp-2 mt-1.5 leading-relaxed">
+                {book.description}
+              </p>
+            </Link>
+          ))}
+        </div>
       </div>
 
     </div>

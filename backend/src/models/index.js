@@ -16,9 +16,13 @@ import Transaction from './Transaction.js';
 import AuditLog from './AuditLog.js';
 import Notification from './Notification.js';
 import Setting from './Setting.js';
+import Aarti from './Aarti.js';
 
 export const initAssociations = () => {
   // Mandal associations
+  Mandal.hasMany(Aarti, { foreignKey: 'mandalId', as: 'aartis' });
+  Aarti.belongsTo(Mandal, { foreignKey: 'mandalId', as: 'mandal' });
+  Aarti.belongsTo(User, { foreignKey: 'uploadedById', as: 'uploader' });
   Mandal.hasMany(User, { foreignKey: 'activeMandalId', as: 'users' });
   User.belongsTo(Mandal, { foreignKey: 'activeMandalId', as: 'activeMandal' });
 
@@ -114,4 +118,5 @@ export {
   AuditLog,
   Notification,
   Setting,
+  Aarti,
 };
