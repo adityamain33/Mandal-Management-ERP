@@ -91,9 +91,13 @@ const connectDB = async () => {
     const { initAssociations } = await import('../models/index.js');
     initAssociations();
 
-    // 3. Sync tables
-    await sequelize.sync({ alter: true });
-    console.log('MySQL Database Tables Synchronized successfully.');
+    // 3. Sync tables safely (use standard sync without alter:true to prevent TiDB UNIQUE KEY errors)
+    try {
+      await sequelize.sync();
+      console.log('MySQL Database Tables Synchronized successfully.');
+    } catch (syncError) {
+      console.warn('Sync notice (safe to continue):', syncError.message);
+    }
 
     // Ensure settings table columns are LONGTEXT for Base64 image compatibility
     try {
