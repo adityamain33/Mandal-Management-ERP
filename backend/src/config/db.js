@@ -92,6 +92,14 @@ const connectDB = async () => {
     // 3. Sync tables
     await sequelize.sync({ alter: true });
     console.log('MySQL Database Tables Synchronized successfully.');
+
+    // Ensure settings table columns are LONGTEXT for Base64 image compatibility
+    try {
+      await sequelize.query('ALTER TABLE `settings` MODIFY COLUMN `mandalLogo` LONGTEXT;');
+    } catch (_) {}
+    try {
+      await sequelize.query('ALTER TABLE `settings` MODIFY COLUMN `authorizedSignature` LONGTEXT;');
+    } catch (_) {}
   } catch (error) {
     console.error(`MySQL Connection Error: ${error.message}`);
     process.exit(1);

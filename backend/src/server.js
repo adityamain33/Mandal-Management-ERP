@@ -26,8 +26,9 @@ app.use(helmet({
   contentSecurityPolicy: false,
 }));
 app.use(cors({
-  origin: '*',
+  origin: true,
   credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-mandal-id'],
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));

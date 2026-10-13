@@ -190,7 +190,8 @@ const Settings = () => {
       refetchUser();
       setTimeout(() => setSuccess(false), 2000);
     } catch (err) {
-      setError(err.response?.data?.message || 'सेटिंग्ज जतन करताना त्रुटी आली. (Error saving settings)');
+      const serverMsg = err.response?.data?.detail || err.response?.data?.message || err.message;
+      setError(`त्रुटी: ${serverMsg} (Error saving settings)`);
     }
   };
 

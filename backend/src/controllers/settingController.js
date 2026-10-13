@@ -1,7 +1,11 @@
 import { Setting } from '../models/index.js';
 
 export const getSettings = async (req, res) => {
-  const mandalId = req.mandalId;
+  const mandalId = req.mandalId || req.user?.activeMandalId;
+
+  if (!mandalId) {
+    return res.status(400).json({ message: 'Active Mandal ID missing' });
+  }
 
   try {
     let settings = await Setting.findOne({ where: { mandalId: Number(mandalId) } });
@@ -12,12 +16,16 @@ export const getSettings = async (req, res) => {
     resObj._id = settings.id;
     res.json(resObj);
   } catch (error) {
-    res.status(500).json({ message: 'Server error retrieving settings' });
+    console.error('Get settings error:', error);
+    res.status(500).json({
+      message: error.message || 'Server error retrieving settings',
+      detail: error.original ? error.original.sqlMessage : error.message,
+    });
   }
 };
 
 export const updateSettings = async (req, res) => {
-  const mandalId = req.mandalId;
+  const mandalId = req.mandalId || req.user?.activeMandalId;
   const {
     receiptPrefix,
     receiptStartNumber,
@@ -29,6 +37,10 @@ export const updateSettings = async (req, res) => {
     mandalLogo,
     authorizedSignature,
   } = req.body;
+
+  if (!mandalId) {
+    return res.status(400).json({ message: 'मंडळ आयडी सापडला नाही (Active Mandal ID missing)' });
+  }
 
   try {
     let settings = await Setting.findOne({ where: { mandalId: Number(mandalId) } });
@@ -52,6 +64,9 @@ export const updateSettings = async (req, res) => {
     res.json(resObj);
   } catch (error) {
     console.error('Update settings error:', error);
-    res.status(500).json({ message: 'Server error updating settings' });
+    res.status(500).json({
+      message: error.message || 'Server error updating settings',
+      detail: error.original ? error.original.sqlMessage : error.message,
+    });
   }
 };
