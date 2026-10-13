@@ -12,7 +12,9 @@ const dbPassword = process.env.DB_PASSWORD || '';
 const dbName = process.env.DB_NAME || 'mandalsetu_db';
 
 const isProduction = process.env.NODE_ENV === 'production';
-const enableSSL = process.env.DB_SSL === 'true' || Boolean(dbUri && !dbUri.includes('localhost'));
+const isRemoteHost = Boolean(dbHost && dbHost !== 'localhost' && dbHost !== '127.0.0.1');
+const isTiDB = Boolean((dbHost && dbHost.includes('tidbcloud.com')) || (dbUri && dbUri.includes('tidbcloud.com')));
+const enableSSL = process.env.DB_SSL === 'true' || isTiDB || isRemoteHost || (dbUri && !dbUri.includes('localhost'));
 
 const sslOptions = enableSSL
   ? {
