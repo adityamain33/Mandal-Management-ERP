@@ -116,7 +116,7 @@ const Receipts = () => {
           handleDownloadPDF(res.data.receipt._id, res.data.receipt.receiptNo);
         }
         if (actionType === 'whatsapp') {
-          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
           const serverRoot = apiUrl.endsWith('/api') ? apiUrl.slice(0, -4) : apiUrl;
           const receiptUrl = `${serverRoot}/uploads/receipts/receipt_${res.data.receipt.receiptNo.replace(/\//g, '_')}.pdf`;
           
@@ -380,7 +380,7 @@ ${receiptUrl}`;
                             <>
                               <button
                                 onClick={() => {
-                                  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+                                  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
                                   const serverRoot = apiUrl.endsWith('/api') ? apiUrl.slice(0, -4) : apiUrl;
                                   const receiptUrl = `${serverRoot}/uploads/receipts/receipt_${r.receiptNo.replace(/\//g, '_')}.pdf`;
 
