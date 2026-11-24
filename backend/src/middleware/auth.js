@@ -2,6 +2,8 @@ import jwt from 'jsonwebtoken';
 import { User } from '../models/index.js';
 import { computePermissions } from '../config/permissions.js';
 
+const JWT_SECRET = process.env.JWT_SECRET || 'mandalsetu_jwt_secret_key_2026_xyz';
+
 export const protect = async (req, res, next) => {
   let token;
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
@@ -13,7 +15,7 @@ export const protect = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
     const user = await User.findByPk(decoded.id, {
       attributes: { exclude: ['password'] },
     });

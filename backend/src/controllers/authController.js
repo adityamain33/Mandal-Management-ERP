@@ -1,10 +1,12 @@
-import { User, Mandal, Setting, Festival, Account } from '../models/index.js';
+import { sequelize, User, Mandal, Setting, Festival, Account } from '../models/index.js';
 import jwt from 'jsonwebtoken';
 import { Op } from 'sequelize';
 import { computePermissions, ALL_PERMISSIONS } from '../config/permissions.js';
 
+const JWT_SECRET = process.env.JWT_SECRET || 'mandalsetu_jwt_secret_key_2026_xyz';
+
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+  return jwt.sign({ id }, JWT_SECRET, { expiresIn: '30d' });
 };
 
 export const register = async (req, res) => {
@@ -32,92 +34,118 @@ export const register = async (req, res) => {
   }
 
   try {
-    const userExists = await User.findOne({ where: { email: email.toLowerCase().trim() } });
-    if (userExists) {
-      return res.status(400).json({ message: 'User already exists' });
-    }
+    const trimmedEmail = email.toLowerCase().trim();
+    const trimmedMobile = mobile.trim();
 
-    // 1. Create Mandal
-    const mandal = await Mandal.create({
-      name: mandalName,
-      city,
-      state,
-      configuration: {
-        receiptPrefix: 'GM/26',
-        receiptStartNumber: 1,
+    const userExists = await User.findOne({
+      where: {
+        [Op.or]: [
+          { email: trimmedEmail },
+          { mobile: trimmedMobile },
+        ],
       },
     });
 
-    // 2. Create User
-    const user = await User.create({
-      name: adminName,
-      email: email.toLowerCase().trim(),
-      mobile: mobile.trim(),
-      password,
-      activeMandalId: mandal.id,
-      mandalRoles: [
-        {
-          mandalId: mandal.id,
-          role: 'MANDAL_ADMIN',
-          customPermissions: ALL_PERMISSIONS,
-        },
-      ],
-    });
-
-    // 3. Create default settings
-    await Setting.create({
-      mandalId: mandal.id,
-      receiptPrefix: 'GM/26',
-      receiptStartNumber: 1,
-    });
-
-    // 4. Create default active Festival
-    const today = new Date();
-    const dec31 = new Date(today.getFullYear(), 11, 31);
-    await Festival.create({
-      name: 'गणेशोत्सव २०२६',
-      year: 2026,
-      startDate: today,
-      endDate: dec31,
-      mandalId: mandal.id,
-      theme: 'पारंपारिक मूर्ती व सजावट',
-      budget: 100000,
-      expectedDonation: 150000,
-      status: 'ACTIVE',
-    });
-
-    // 5. Create Default Chart of Accounts
-    const defaultAccounts = [
-      { code: '1000', name: 'रोख खाते (Cash Account)', type: 'ASSET' },
-      { code: '1010', name: 'बँक खाते (Bank Account)', type: 'ASSET' },
-      { code: '3000', name: 'वर्गणी व देणगी जमा (Donation Revenue)', type: 'INCOME' },
-      { code: '4000', name: 'उत्सव सजावट खर्च (Decoration Expense)', type: 'EXPENSE' },
-      { code: '4010', name: 'प्रसाद खर्च (Prasad Expense)', type: 'EXPENSE' },
-      { code: '4020', name: 'सांस्कृतिक कार्यक्रम खर्च (Cultural Expense)', type: 'EXPENSE' },
-      { code: '4030', name: 'इतर खर्च (Miscellaneous Expense)', type: 'EXPENSE' },
-    ];
-
-    for (const acc of defaultAccounts) {
-      await Account.create({
-        ...acc,
-        mandalId: mandal.id,
+    if (userExists) {
+      const isEmail = userExists.email === trimmedEmail;
+      return res.status(400).json({
+        message: isEmail
+          ? 'हा ईमेल आयडी आधीच नोंदणीकृत आहे. कृपया लॉगिन करा किंवा वेगळा ईमेल वापरा / An account with this email already exists. Please log in or use a different email.'
+          : 'हा मोबाईल क्रमांक आधीच नोंदणीकृत आहे. कृपया लॉगिन करा किंवा वेगळा मोबाईल वापरा / An account with this mobile number already exists. Please log in or use a different mobile.',
       });
     }
 
-    res.status(201).json({
-      _id: user.id,
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      mobile: user.mobile,
-      token: generateToken(user.id),
-      activeMandalId: mandal.id,
-      role: 'MANDAL_ADMIN',
-      permissions: ALL_PERMISSIONS,
-    });
+    // Use transaction for atomic creation
+    const t = await sequelize.transaction();
+
+    try {
+      // 1. Create Mandal
+      const mandal = await Mandal.create({
+        name: mandalName,
+        city,
+        state,
+        configuration: {
+          receiptPrefix: 'GM/26',
+          receiptStartNumber: 1,
+        },
+      }, { transaction: t });
+
+      // 2. Create User
+      const user = await User.create({
+        name: adminName,
+        email: trimmedEmail,
+        mobile: trimmedMobile,
+        password,
+        activeMandalId: mandal.id,
+        mandalRoles: [
+          {
+            mandalId: mandal.id,
+            role: 'MANDAL_ADMIN',
+            customPermissions: ALL_PERMISSIONS,
+          },
+        ],
+      }, { transaction: t });
+
+      // 3. Create default settings
+      await Setting.create({
+        mandalId: mandal.id,
+        receiptPrefix: 'GM/26',
+        receiptStartNumber: 1,
+      }, { transaction: t });
+
+      // 4. Create default active Festival
+      const today = new Date();
+      const dec31 = new Date(today.getFullYear(), 11, 31);
+      await Festival.create({
+        name: 'गणेशोत्सव २०२६',
+        year: 2026,
+        startDate: today,
+        endDate: dec31,
+        mandalId: mandal.id,
+        theme: 'पारंपारिक मूर्ती व सजावट',
+        budget: 100000,
+        expectedDonation: 150000,
+        status: 'ACTIVE',
+      }, { transaction: t });
+
+      // 5. Create Default Chart of Accounts
+      const defaultAccounts = [
+        { code: '1000', name: 'रोख खाते (Cash Account)', type: 'ASSET' },
+        { code: '1010', name: 'बँक खाते (Bank Account)', type: 'ASSET' },
+        { code: '3000', name: 'वर्गणी व देणगी जमा (Donation Revenue)', type: 'INCOME' },
+        { code: '4000', name: 'उत्सव सजावट खर्च (Decoration Expense)', type: 'EXPENSE' },
+        { code: '4010', name: 'प्रसाद खर्च (Prasad Expense)', type: 'EXPENSE' },
+        { code: '4020', name: 'सांस्कृतिक कार्यक्रम खर्च (Cultural Expense)', type: 'EXPENSE' },
+        { code: '4030', name: 'इतर खर्च (Miscellaneous Expense)', type: 'EXPENSE' },
+      ];
+
+      for (const acc of defaultAccounts) {
+        await Account.create({
+          ...acc,
+          mandalId: mandal.id,
+        }, { transaction: t });
+      }
+
+      await t.commit();
+
+      return res.status(201).json({
+        _id: user.id,
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        mobile: user.mobile,
+        token: generateToken(user.id),
+        activeMandalId: mandal.id,
+        role: 'MANDAL_ADMIN',
+        permissions: ALL_PERMISSIONS,
+      });
+    } catch (createError) {
+      await t.rollback();
+      throw createError;
+    }
   } catch (error) {
     console.error('Registration error:', error);
-    res.status(500).json({ message: 'Server error during registration' });
+    return res.status(500).json({ message: error?.message || 'Server error during registration' });
   }
 };
 

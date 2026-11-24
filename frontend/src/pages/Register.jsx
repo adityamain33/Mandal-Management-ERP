@@ -83,9 +83,16 @@ const Register = () => {
         </div>
 
         {error && (
-          <div className="mb-4 rounded-lg bg-red-50 border border-red-200 p-3 text-xs font-semibold text-red-700 flex items-center gap-2">
-            <ShieldAlert size={16} />
-            <span>{error}</span>
+          <div className="mb-4 rounded-lg bg-red-50 border border-red-200 p-3 text-xs font-semibold text-red-700 flex flex-col gap-1.5">
+            <div className="flex items-center gap-2">
+              <ShieldAlert size={16} className="shrink-0" />
+              <span>{error}</span>
+            </div>
+            {(error.toLowerCase().includes('already exists') || error.includes('आधीच')) && (
+              <Link to="/login" className="ml-6 font-bold text-orange-600 underline hover:text-orange-700">
+                येथे लॉगिन करा / Click here to Login &rarr;
+              </Link>
+            )}
           </div>
         )}
 
